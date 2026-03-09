@@ -388,6 +388,15 @@
     #screen-reward .reward-sub {
       color: #8899AA; font-size: 0.75rem; letter-spacing: 0.1em;
     }
+    #reward-stats {
+      display: flex; gap: 1.5rem;
+      font-size: 0.65rem; color: #556677; letter-spacing: 0.12em;
+    }
+    #reward-stats span { color: var(--cyan); }
+    #reward-deck-count {
+      font-size: 0.65rem; color: #556677; letter-spacing: 0.12em; margin-top: -0.5rem;
+    }
+    #reward-deck-count span { color: var(--purple); }
     #reward-cards {
       display: flex; gap: 0.9rem; flex-wrap: wrap; justify-content: center;
     }
@@ -681,8 +690,10 @@
   <div id="screen-reward" class="screen hidden">
     <div class="reward-title">// UPLINK RECEIVED</div>
     <div class="reward-sub">Select one card to add to your deck</div>
+    <div id="reward-stats"></div>
     <div id="reward-cards"></div>
     <button class="btn" id="btn-skip">[ SKIP REWARD ]</button>
+    <div id="reward-deck-count"></div>
   </div>
 
   <!-- ══ GAME OVER ══ -->
@@ -1011,6 +1022,10 @@ function roomCleared() {
 
 // ── REWARD SCREEN ────────────────────────────────────
 function showReward() {
+  // Show room clear stats
+  document.getElementById('reward-stats').innerHTML =
+    `<span>ROOM ${G.room}/5</span> cleared &nbsp;·&nbsp; HP: <span>${G.player.hp}/${G.player.maxHp}</span>`;
+
   // 3 unique random cards
   const pool    = shuffle(REWARD_POOL);
   const choices = pool.slice(0, 3);
@@ -1029,11 +1044,23 @@ function showReward() {
       <div class="card-name">${card.name}</div>
       <div class="card-desc">${card.desc}</div>
     `;
-    addClickAndTouch(el, () => selectReward(cardId));
+    addClickAndTouch(el, () => selectRewardWithAnim(cardId, el));
     container.appendChild(el);
   });
 
+  document.getElementById('reward-deck-count').innerHTML =
+    `Deck size: <span>${G.deck.length} cards</span>`;
+
   showScreen('reward');
+}
+
+function selectRewardWithAnim(cardId, el) {
+  // Flash border green on the selected card
+  el.style.borderColor = 'var(--green)';
+  el.style.boxShadow   = '0 0 25px rgba(26,255,115,0.5)';
+  // Disable all reward cards
+  document.querySelectorAll('.reward-card').forEach(c => { c.style.pointerEvents = 'none'; });
+  setTimeout(() => selectReward(cardId), 350);
 }
 
 function selectReward(cardId) {
@@ -1042,6 +1069,7 @@ function selectReward(cardId) {
 }
 
 function nextRoom() {
+  G.cardsPlayed = 0; // reset per-room counter
   G.room++;
   startCombat();
 }
