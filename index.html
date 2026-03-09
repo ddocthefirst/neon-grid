@@ -975,16 +975,18 @@
     <!-- Hand -->
     <div id="hand-area">
       <div id="hand-meta">
-        <div class="hand-label">HAND</div>
+        <div class="hand-label">YOUR HAND <span id="hand-count" style="color:#8899AA;font-size:0.75em"></span></div>
         <div style="display:flex;gap:0.8rem;align-items:center;">
-          <div id="combo-display"></div>
           <div class="hand-label" id="deck-info">DRAW: 0 · DISC: 0</div>
         </div>
       </div>
+      <div id="played-row" style="display:none;padding:0.2rem 0 0.3rem;font-size:0.7rem;letter-spacing:0.15em;color:#8899AA;">
+        PLAYED THIS TURN: <span id="played-list" style="color:var(--yellow)"></span>
+      </div>
       <div id="hand-cards"></div>
-      <div id="swipe-hint">← swipe to scroll · tap to play →</div>
+      <div id="swipe-hint">← swipe to scroll →</div>
+      <div id="hand-subtitle">Tap a card to play it instantly · Cards cost ◆ energy</div>
       <button class="btn" id="end-turn-btn">[ END TURN → ENEMY ATTACKS ]</button>
-      <div id="hand-subtitle">Playing cards costs ◆ energy · End turn when ready</div>
     </div>
   </div>
 
@@ -1173,6 +1175,7 @@ function newGame() {
     hand:          [],
     discardPile:   [],
     cardsPlayed:   0,
+    playedThisTurn: [],
   };
 }
 
@@ -1231,6 +1234,7 @@ function playCard(handIdx) {
   G.hand.splice(handIdx, 1);
   G.player.energy -= card.cost;
   G.cardsPlayed++;
+  G.playedThisTurn.push(card.name);
 
   const e = G.enemy;
   const p = G.player;
@@ -1358,6 +1362,7 @@ function enemyTurn() {
     G.turn++;
     p.block   = 0;
     p.energy  = p.maxEnergy;
+    G.playedThisTurn = [];
     drawCards(4);
     inputLocked = false;
     showTurnBanner('YOUR TURN', 'var(--cyan)');
@@ -1663,13 +1668,20 @@ function renderHand(animate) {
   });
 
   // Combo display
-  const comboEl = document.getElementById('combo-display');
-  if (G.cardsPlayed > 0) {
-    comboEl.textContent = `×${G.cardsPlayed} PLAYED`;
-    comboEl.classList.add('active');
-  } else {
-    comboEl.textContent = '';
-    comboEl.classList.remove('active');
+  // Hand count
+  const handCount = document.getElementById('hand-count');
+  if (handCount) handCount.textContent = `(${G.hand.length})`;
+
+  // Played this turn row
+  const playedRow  = document.getElementById('played-row');
+  const playedList = document.getElementById('played-list');
+  if (playedRow && playedList) {
+    if (G.playedThisTurn && G.playedThisTurn.length > 0) {
+      playedRow.style.display = 'block';
+      playedList.textContent  = G.playedThisTurn.join(' · ');
+    } else {
+      playedRow.style.display = 'none';
+    }
   }
 }
 
@@ -1679,7 +1691,10 @@ function handleCardClick(idx, el) {
   el.classList.add('card-playing');
   setTimeout(() => {
     const played = playCard(idx);
-    if (!played) inputLocked = false;
+    // Unlock unless enemy just died (roomCleared handles that)
+    if (!played || (G.screen === 'combat' && G.enemy.hp > 0)) {
+      inputLocked = false;
+    }
   }, 200);
 }
 
