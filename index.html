@@ -678,16 +678,58 @@
       animation: lowHpPulse 1s ease-in-out infinite;
     }
 
-    /* ─── RESPONSIVE ─── */
+    /* ─── RESPONSIVE / MOBILE ─── */
     @media (max-width: 400px) {
-      .card { width: 68px; height: 100px; }
+      .card { width: 66px; height: 98px; }
       .card-icon { font-size: 1.3rem; }
-      .reward-card { width: 90px; height: 130px; }
+      .card-name { font-size: 0.44rem; }
+      .card-desc { font-size: 0.4rem; }
+      .reward-card { width: 88px; height: 126px; }
+      .reward-card .card-icon { font-size: 1.7rem; }
+      .btn { font-size: 0.82rem; letter-spacing: 0.18em; padding: 0.7rem 1.5rem; }
+      #screen-title .logo { font-size: clamp(2.2rem, 11vw, 3.5rem); }
     }
+
     @media (max-height: 600px) {
-      #combat-arena { padding: 0.4rem 1rem; }
-      .card { height: 100px; }
-      #hand-area { padding: 0.4rem 0.75rem; }
+      #combat-arena { padding: 0.3rem 1rem; }
+      .card { height: 96px; }
+      #hand-area { padding: 0.3rem 0.75rem; }
+      #hand-cards { min-height: 100px; }
+      .entity-section { gap: 0.25rem; }
+      .hp-bar-wrap { height: 16px; }
+    }
+
+    /* Very small screens (iPhone SE etc) */
+    @media (max-width: 360px) {
+      .card { width: 60px; height: 88px; }
+      #hand-cards { gap: 0.35rem; }
+    }
+
+    /* ─── TOUCH SWIPE AREA ─── */
+    #swipe-hint {
+      display: none;
+      font-size: 0.55rem; color: #445566; letter-spacing: 0.1em;
+      text-align: center; margin-top: 0.2rem;
+    }
+    @media (pointer: coarse) {
+      #swipe-hint { display: block; }
+      /* Larger tap targets on touch */
+      .card { min-height: 96px; }
+      .btn { min-height: 44px; }
+      .reward-card { min-height: 126px; }
+      /* Remove hover styles on touch (they stick on mobile) */
+      .card:not(.disabled):hover { transform: none; box-shadow: none; border-color: var(--card-border); }
+      .card:not(.disabled):active { transform: translateY(-10px) scale(1.03); }
+    }
+
+    /* ─── LANDSCAPE MOBILE ─── */
+    @media (max-height: 480px) and (orientation: landscape) {
+      #combat-arena { flex-direction: row; flex-wrap: wrap; justify-content: space-between; padding: 0.3rem 0.75rem; }
+      .entity-section { width: 45%; max-width: none; }
+      #combat-middle { width: 10%; flex-direction: column; }
+      #hand-area { padding: 0.2rem 0.5rem; }
+      .card { width: 62px; height: 88px; }
+      #hand-cards { min-height: 92px; }
     }
   </style>
 </head>
@@ -757,6 +799,7 @@
         </div>
       </div>
       <div id="hand-cards"></div>
+      <div id="swipe-hint">← swipe to scroll · tap to play →</div>
       <button class="btn" id="end-turn-btn">[ END TURN ]</button>
     </div>
   </div>
@@ -1445,17 +1488,51 @@ function shakeEl(el) {
 
 // ── TOUCH + CLICK HELPER ─────────────────────────────
 function addClickAndTouch(el, fn) {
-  let touchFired = false;
+  let touchFired   = false;
+  let touchStartX  = 0;
+  let touchStartY  = 0;
+  let touchMoved   = false;
+
+  el.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoved  = false;
+  }, { passive: true });
+
+  el.addEventListener('touchmove', (e) => {
+    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if (dx > 8 || dy > 8) touchMoved = true;
+  }, { passive: true });
+
   el.addEventListener('touchend', (e) => {
+    if (touchMoved) return; // was a scroll, not a tap
     e.preventDefault();
     touchFired = true;
     fn();
     setTimeout(() => { touchFired = false; }, 400);
   });
+
   el.addEventListener('click', () => {
     if (!touchFired) fn();
   });
 }
+
+// ── HAND HORIZONTAL SCROLL (touch momentum) ──────────
+(function setupHandScroll() {
+  let startX = 0, scrollLeft = 0, dragging = false;
+  const hand = document.getElementById('hand-cards');
+
+  hand.addEventListener('touchstart', (e) => {
+    startX     = e.touches[0].pageX;
+    scrollLeft = hand.scrollLeft;
+  }, { passive: true });
+
+  hand.addEventListener('touchmove', (e) => {
+    const dx = e.touches[0].pageX - startX;
+    hand.scrollLeft = scrollLeft - dx;
+  }, { passive: true });
+})();
 
 // ── TITLE DECK PREVIEW ───────────────────────────────
 function renderTitlePreview() {
