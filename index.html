@@ -603,6 +603,81 @@
       opacity: 0.35; cursor: not-allowed; pointer-events: none;
     }
 
+    /* ─── SCREEN FADE TRANSITION ─── */
+    .screen {
+      transition: opacity 0.25s ease;
+    }
+    .screen.fading-out {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+
+    /* ─── WIN ANIMATION ─── */
+    @keyframes winGlow {
+      0%,100% { text-shadow: 0 0 30px var(--green), 0 0 60px rgba(26,255,115,0.4); }
+      50%      { text-shadow: 0 0 50px var(--green), 0 0 100px rgba(26,255,115,0.6), 0 0 150px rgba(26,255,115,0.3); }
+    }
+    #screen-win h1 { animation: winGlow 2s ease-in-out infinite; }
+
+    /* ─── GAME OVER PARTICLE ─── */
+    @keyframes particleFall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    .particle {
+      position: fixed;
+      width: 6px; height: 6px;
+      background: var(--red);
+      border-radius: 1px;
+      pointer-events: none;
+      z-index: 90;
+    }
+
+    /* ─── BEST RUN BADGE ─── */
+    .best-run {
+      display: inline-block;
+      border: 1px solid var(--yellow);
+      color: var(--yellow);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      padding: 2px 8px;
+      margin-top: 0.3rem;
+      box-shadow: 0 0 8px rgba(255,217,0,0.2);
+    }
+
+    /* ─── STATUS EFFECT ANIMATION ─── */
+    @keyframes pillPop {
+      0%   { transform: scale(0.6); opacity: 0; }
+      60%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pill { animation: pillPop 0.2s ease; }
+
+    /* ─── SCAN LINE OVERLAY (subtle CRT effect) ─── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ─── LOW HP WARNING ─── */
+    @keyframes lowHpPulse {
+      0%,100% { box-shadow: none; }
+      50%     { box-shadow: inset 0 0 30px rgba(255,38,64,0.15); }
+    }
+    #screen-combat.low-hp {
+      animation: lowHpPulse 1s ease-in-out infinite;
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 400px) {
       .card { width: 68px; height: 100px; }
@@ -1140,22 +1215,59 @@ function nextRoom() {
   startCombat();
 }
 
+// ── BEST RUN TRACKING ────────────────────────────────
+function loadBestRun() {
+  try { return JSON.parse(localStorage.getItem('neon-grid-best') || 'null'); } catch(e) { return null; }
+}
+function saveBestRun(data) {
+  try { localStorage.setItem('neon-grid-best', JSON.stringify(data)); } catch(e) {}
+}
+
+// ── PARTICLES (game over effect) ─────────────────────
+function spawnParticles() {
+  const colors = ['var(--red)', 'var(--purple)', '#FF8800'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left  = Math.random() * 100 + 'vw';
+    p.style.top   = Math.random() * 40 + 'vh';
+    p.style.background = colors[i % colors.length];
+    p.style.animation  = `particleFall ${0.8 + Math.random() * 0.8}s ease ${Math.random() * 0.3}s forwards`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1800);
+  }
+}
+
 // ── GAME OVER ────────────────────────────────────────
 function gameOver() {
-  document.getElementById('gameover-stats').innerHTML =
-    `Rooms survived: <span>${G.room}/5</span><br/>` +
+  spawnParticles();
+
+  const best = loadBestRun();
+  const isBest = !best || G.room > best.room || (G.room === best.room && G.cardsPlayed > best.cardsPlayed);
+  if (isBest) saveBestRun({ room: G.room, cardsPlayed: G.cardsPlayed, won: false });
+
+  let html = `Rooms survived: <span>${G.room}/5</span><br/>` +
     `Cards played: <span>${G.cardsPlayed}</span><br/>` +
     `Final HP: <span>0/${G.player.maxHp}</span>`;
+  if (isBest && best) html += `<br/><span style="color:var(--yellow)">↑ NEW RECORD</span>`;
+  else if (best) html += `<br/>Best run: rooms <span>${best.room}</span>`;
+  document.getElementById('gameover-stats').innerHTML = html;
   showScreen('gameover');
 }
 
 // ── WIN ──────────────────────────────────────────────
 function showWin() {
-  document.getElementById('win-stats').innerHTML =
+  const best = loadBestRun();
+  const isBest = !best || !best.won;
+  saveBestRun({ room: 5, cardsPlayed: G.cardsPlayed, hp: G.player.hp, won: true });
+
+  let html =
     `All <span>5</span> rooms cleared<br/>` +
     `Cards played: <span>${G.cardsPlayed}</span><br/>` +
     `HP remaining: <span>${G.player.hp}/${G.player.maxHp}</span><br/>` +
     `ICE-9 <span>DESTROYED</span>`;
+  if (isBest) html += `<br/><span style="color:var(--yellow)">★ FIRST CLEAR</span>`;
+  document.getElementById('win-stats').innerHTML = html;
   showScreen('win');
 }
 
@@ -1166,6 +1278,9 @@ function showScreen(name) {
   ALL_SCREENS.forEach(s => {
     document.getElementById(`screen-${s}`).classList.toggle('hidden', s !== name);
   });
+  // Low HP warning on combat screen
+  const combatEl = document.getElementById('screen-combat');
+  combatEl.classList.toggle('low-hp', name === 'combat' && G.player && G.player.hp <= G.player.maxHp * 0.25);
 }
 
 // ── ENEMY INTENT ─────────────────────────────────────
@@ -1238,6 +1353,11 @@ function renderCombat(animateHand) {
 
   // Enable/disable end turn button
   document.getElementById('end-turn-btn').disabled = inputLocked;
+
+  // Low HP warning
+  document.getElementById('screen-combat').classList.toggle(
+    'low-hp', G.player.hp <= G.player.maxHp * 0.25
+  );
 
   renderHand(animateHand);
 }
