@@ -549,6 +549,51 @@
       50%     { border-color: var(--red); box-shadow: 0 0 12px rgba(255,38,64,0.4); }
     }
 
+    /* ─── ENEMY ATTACK INDICATOR ─── */
+    @keyframes enemyAttack {
+      0%   { transform: translateX(0); }
+      25%  { transform: translateX(12px); }
+      75%  { transform: translateX(-4px); }
+      100% { transform: translateX(0); }
+    }
+    .enemy-attacking { animation: enemyAttack 0.35s ease; }
+
+    /* ─── BLOCK ABSORB FLASH ─── */
+    @keyframes blockFlash {
+      0%   { box-shadow: inset 0 0 0 2px var(--cyan); opacity: 1; }
+      100% { box-shadow: none; opacity: 1; }
+    }
+    .block-absorb { animation: blockFlash 0.4s ease forwards; }
+
+    /* ─── TURN TRANSITION ─── */
+    #turn-banner {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+    #turn-banner span {
+      font-size: clamp(1.2rem, 5vw, 2rem);
+      letter-spacing: 0.4em;
+      color: var(--yellow);
+      text-shadow: 0 0 20px var(--yellow);
+      animation: bannerAnim 0.9s ease forwards;
+    }
+    @keyframes bannerAnim {
+      0%   { opacity: 0; transform: scale(0.7); }
+      30%  { opacity: 1; transform: scale(1.05); }
+      70%  { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.1); }
+    }
+
+    /* ─── END TURN disabled ─── */
+    #end-turn-btn:disabled {
+      opacity: 0.35; cursor: not-allowed; pointer-events: none;
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 400px) {
       .card { width: 68px; height: 100px; }
@@ -880,6 +925,14 @@ function enemyTurn() {
     dmg = (e.turn % 2 === 1) ? e.atk : 0;
   }
 
+  // Animate enemy attacking
+  shakeEl(document.getElementById('enemy-section'));
+  const eNameEl = document.getElementById('enemy-name');
+  eNameEl.classList.remove('enemy-attacking');
+  void eNameEl.offsetWidth;
+  eNameEl.classList.add('enemy-attacking');
+  setTimeout(() => eNameEl.classList.remove('enemy-attacking'), 400);
+
   if (dmg > 0) {
     const absorbed = Math.min(dmg, p.block);
     const actual   = dmg - absorbed;
@@ -890,7 +943,7 @@ function enemyTurn() {
       floatText(`-${actual}`, 'damage', 'player');
       shakeEl(document.getElementById('player-section'));
     }
-    if (absorbed > 0) floatText('BLOCKED', 'block', 'player');
+    if (absorbed > 0) floatText(`${absorbed} BLOCKED`, 'block', 'player');
   } else if (e.phantom) {
     floatText('RECHARGING', 'buff', 'enemy');
   }
@@ -910,8 +963,18 @@ function enemyTurn() {
     p.energy  = p.maxEnergy;
     drawCards(4);
     inputLocked = false;
+    showTurnBanner('YOUR TURN', 'var(--cyan)');
     renderCombat(true); // animate new hand
   }, 500);
+}
+
+// ── TURN BANNER ──────────────────────────────────────
+function showTurnBanner(text, color) {
+  const el   = document.createElement('div');
+  el.id      = 'turn-banner';
+  el.innerHTML = `<span style="color:${color};text-shadow:0 0 20px ${color}">${text}</span>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
 }
 
 // ── END TURN ─────────────────────────────────────────
@@ -924,7 +987,8 @@ function endTurn() {
   G.hand = [];
   renderCombat();
 
-  setTimeout(enemyTurn, 350);
+  showTurnBanner('ENEMY TURN', 'var(--red)');
+  setTimeout(enemyTurn, 500);
 }
 
 // ── ROOM CLEARED ─────────────────────────────────────
@@ -1067,6 +1131,9 @@ function renderCombat(animateHand) {
   document.getElementById('turn-info').textContent = `TURN ${G.turn}`;
   document.getElementById('deck-info').textContent =
     `DRAW: ${G.drawPile.length} · DISC: ${G.discardPile.length}`;
+
+  // Enable/disable end turn button
+  document.getElementById('end-turn-btn').disabled = inputLocked;
 
   renderHand(animateHand);
 }
