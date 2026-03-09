@@ -758,15 +758,66 @@ const CARD_TYPE_COLOR = {
 const REWARD_POOL = Object.keys(CARD_DEFS);
 
 // ── ENEMY DEFINITIONS ────────────────────────────────
+const ENEMY_DEFS = [
+  {
+    name:      'SENTINEL',
+    maxHp:     15,
+    atk:       4,
+    baseBlock: 0,
+    phantom:   false,
+    boss:      false,
+    icon:      '🤖',
+    color:     'var(--red)',
+    flavor:    'Basic patrol unit. Attacks every turn.',
+  },
+  {
+    name:      'WARDEN',
+    maxHp:     20,
+    atk:       5,
+    baseBlock: 3,
+    phantom:   false,
+    boss:      false,
+    icon:      '🛡',
+    color:     '#FF8800',
+    flavor:    'Armored enforcer. Always has 3 block.',
+  },
+  {
+    name:      'HUNTER',
+    maxHp:     18,
+    atk:       7,
+    baseBlock: 0,
+    phantom:   false,
+    boss:      false,
+    icon:      '👁',
+    color:     '#FF2680',
+    flavor:    'High-damage hunter. No defenses.',
+  },
+  {
+    name:      'PHANTOM',
+    maxHp:     25,
+    atk:       10,
+    baseBlock: 0,
+    phantom:   true,
+    boss:      false,
+    icon:      '👻',
+    color:     'var(--purple)',
+    flavor:    'Alternates: massive strike then recharge.',
+  },
+  {
+    name:      'ICE-9',
+    maxHp:     40,
+    atk:       8,
+    baseBlock: 5,
+    phantom:   false,
+    boss:      true,
+    icon:      '☠',
+    color:     'var(--cyan)',
+    flavor:    'Apex AI. Buffs on turn 3. Final threat.',
+  },
+];
+
 function makeEnemy(room) {
-  const defs = [
-    { name:'SENTINEL', maxHp:15, atk:4,  baseBlock:0, phantom:false, boss:false },
-    { name:'WARDEN',   maxHp:20, atk:5,  baseBlock:3, phantom:false, boss:false },
-    { name:'HUNTER',   maxHp:18, atk:7,  baseBlock:0, phantom:false, boss:false },
-    { name:'PHANTOM',  maxHp:25, atk:10, baseBlock:0, phantom:true,  boss:false },
-    { name:'ICE-9',    maxHp:40, atk:8,  baseBlock:5, phantom:false, boss:true  },
-  ];
-  const d = defs[room - 1];
+  const d = ENEMY_DEFS[room - 1];
   return {
     name:      d.name,
     maxHp:     d.maxHp,
@@ -776,8 +827,14 @@ function makeEnemy(room) {
     curBlock:  d.baseBlock,
     phantom:   d.phantom,
     boss:      d.boss,
-    turn:      0,       // increments before enemy acts
+    icon:      d.icon,
+    color:     d.color,
+    flavor:    d.flavor,
+    turn:      0,
     buffed:    false,
+    // Boss-specific: rage at <25% HP
+    rageThreshold: d.boss ? Math.floor(d.maxHp * 0.25) : 0,
+    raged:     false,
   };
 }
 
@@ -925,6 +982,15 @@ function enemyTurn() {
     e.atk      += 4;
     e.baseBlock += 3;
     floatText('BUFFED!', 'buff', 'enemy');
+    shakeEl(document.getElementById('enemy-section'));
+  }
+
+  // Boss: rage at <25% HP
+  if (e.boss && !e.raged && e.hp <= e.rageThreshold && e.hp > 0) {
+    e.raged     = true;
+    e.atk      += 3;
+    floatText('ENRAGED!', 'buff', 'enemy');
+    shakeEl(document.getElementById('enemy-section'));
   }
 
   // Block resets each enemy turn
@@ -1108,6 +1174,8 @@ function getEnemyIntentDmg(e) {
   const nextTurn = e.turn + 1;
   if (e.phantom) return (nextTurn % 2 === 1) ? e.atk : 0;
   if (e.boss && nextTurn === 3 && !e.buffed) return e.atk + 4; // will buff+attack
+  // Show rage warning if boss is about to rage
+  if (e.boss && !e.raged && e.hp <= e.rageThreshold + 3) return e.atk + 3; // hint
   return e.atk;
 }
 
@@ -1121,16 +1189,24 @@ function renderCombat(animateHand) {
   renderRoomDots();
 
   // Enemy
-  const eIsBoss = e.boss;
-  document.getElementById('enemy-name').textContent = (eIsBoss ? '⚠ ' : '') + e.name;
+  const nameEl = document.getElementById('enemy-name');
+  nameEl.textContent = `${e.icon} ${e.boss ? '⚠ ' : ''}${e.name}`;
+  nameEl.style.color = e.color;
+  nameEl.style.textShadow = `0 0 10px ${e.color}`;
   const ePct = Math.max(0, e.hp / e.maxHp * 100);
   document.getElementById('enemy-hp-bar').style.width = ePct + '%';
   document.getElementById('enemy-hp-text').textContent = `${Math.max(0,e.hp)}/${e.maxHp}`;
+  // Boss: color the HP bar differently
+  if (e.boss) {
+    document.getElementById('enemy-hp-bar').style.background =
+      e.raged ? 'var(--purple)' : e.buffed ? '#FF8800' : 'var(--red)';
+  }
 
   const ePills = document.getElementById('enemy-pills');
   ePills.innerHTML = '';
   if (e.curBlock > 0) ePills.innerHTML += `<span class="pill block">🛡 ${e.curBlock}</span>`;
   if (e.buffed)       ePills.innerHTML += `<span class="pill buff">⬆ BUFFED</span>`;
+  if (e.raged)        ePills.innerHTML += `<span class="pill buff" style="color:var(--purple)">💢 ENRAGED</span>`;
   const intent = getEnemyIntentDmg(e);
   if (intent === 0) {
     ePills.innerHTML += `<span class="pill wait">◌ WAIT</span>`;
