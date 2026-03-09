@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEON GRID // Coming Soon</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cyan:   #00E6FF;
+      --red:    #FF2640;
+      --yellow: #FFD900;
+      --green:  #1AFF73;
+      --purple: #A61AFF;
+      --bg:     #080C14;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    canvas#grid {
+      position: fixed;
+      inset: 0;
+      opacity: 0.12;
+      z-index: 0;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      max-width: 600px;
+    }
+
+    .logo {
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan), 0 0 60px var(--cyan);
+      animation: pulse 3s ease-in-out infinite;
+      line-height: 1;
+    }
+
+    .sub {
+      font-size: clamp(0.9rem, 3vw, 1.2rem);
+      color: var(--yellow);
+      letter-spacing: 0.3em;
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      margin: 2rem 0;
+      opacity: 0.6;
+    }
+
+    .tagline {
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
+      color: #8899AA;
+      line-height: 1.7;
+      letter-spacing: 0.05em;
+    }
+
+    .tagline span { color: var(--green); }
+
+    .status {
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      color: var(--red);
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+      animation: blink 1.2s step-start infinite;
+    }
+
+    .badge {
+      margin-top: 2.5rem;
+      display: inline-block;
+      border: 1px solid var(--purple);
+      color: var(--purple);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      padding: 0.35rem 1rem;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px rgba(166,26,255,0.3);
+    }
+
+    @keyframes pulse {
+      0%,100% { text-shadow: 0 0 20px var(--cyan), 0 0 60px var(--cyan); }
+      50%      { text-shadow: 0 0 30px var(--cyan), 0 0 90px var(--cyan), 0 0 120px var(--cyan); }
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="grid"></canvas>
+  <div class="content">
+    <div class="logo">NEON GRID</div>
+    <div class="sub">Roguelike Card Battler</div>
+    <div class="divider"></div>
+    <p class="tagline">
+      Build your deck. Run the grid.<br/>
+      Every choice matters. <span>No save states. No second chances.</span><br/>
+      Pure browser. Zero installs.
+    </p>
+    <div class="status">
+      <div class="dot"></div>
+      TRANSMISSION INCOMING
+    </div>
+    <div class="badge">Open Source · Free Forever</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('grid');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#00E6FF';
+      ctx.lineWidth = 0.5;
+      const sz = 40;
+      for (let x = 0; x <= canvas.width; x += sz) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += sz) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+    }
+    draw();
+    window.addEventListener('resize', draw);
+  </script>
+</body>
+</html>
