@@ -2,168 +2,1123 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NEON GRID // Coming Soon</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>NEON GRID // Roguelike Card Battler</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --cyan:   #00E6FF;
-      --red:    #FF2640;
-      --yellow: #FFD900;
-      --green:  #1AFF73;
-      --purple: #A61AFF;
-      --bg:     #080C14;
+      --cyan:    #00E6FF;
+      --red:     #FF2640;
+      --yellow:  #FFD900;
+      --green:   #1AFF73;
+      --purple:  #A61AFF;
+      --bg:      #080C14;
+      --card-bg: #0D1828;
+      --card-border: #1E3550;
     }
 
-    body {
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
       background: var(--bg);
       color: var(--cyan);
       font-family: 'Share Tech Mono', monospace;
-      min-height: 100vh;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ─── GRID BACKGROUND ─── */
+    #canvas-bg {
+      position: fixed;
+      inset: 0;
+      opacity: 0.07;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ─── SCREENS ─── */
+    .screen {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      padding: 1rem;
     }
+    .screen.hidden { display: none !important; }
 
-    canvas#grid {
-      position: fixed;
-      inset: 0;
-      opacity: 0.12;
-      z-index: 0;
-    }
-
-    .content {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 2rem;
-      max-width: 600px;
-    }
-
-    .logo {
-      font-size: clamp(2.5rem, 8vw, 5rem);
-      letter-spacing: 0.15em;
+    /* ─── SHARED BUTTON ─── */
+    .btn {
+      background: transparent;
+      border: 1px solid currentColor;
       color: var(--cyan);
-      text-shadow: 0 0 20px var(--cyan), 0 0 60px var(--cyan);
-      animation: pulse 3s ease-in-out infinite;
-      line-height: 1;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.25em;
+      padding: 0.75rem 2rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 8px rgba(0,230,255,0.15);
+      user-select: none;
     }
+    .btn:hover, .btn:active { background: rgba(0,230,255,0.12); box-shadow: 0 0 18px rgba(0,230,255,0.4); }
+    .btn.red   { color: var(--red);    box-shadow: 0 0 8px rgba(255,38,64,0.15); }
+    .btn.red:hover, .btn.red:active   { background: rgba(255,38,64,0.1);  box-shadow: 0 0 18px rgba(255,38,64,0.4); }
+    .btn.green { color: var(--green);  box-shadow: 0 0 8px rgba(26,255,115,0.15); }
+    .btn.green:hover, .btn.green:active { background: rgba(26,255,115,0.1); box-shadow: 0 0 18px rgba(26,255,115,0.4); }
 
-    .sub {
-      font-size: clamp(0.9rem, 3vw, 1.2rem);
+    /* ═══════════════════════════════
+       TITLE SCREEN
+    ═══════════════════════════════ */
+    #screen-title { gap: 0; }
+
+    #screen-title .logo {
+      font-size: clamp(2.8rem, 10vw, 5.5rem);
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan), 0 0 70px var(--cyan);
+      letter-spacing: 0.15em;
+      line-height: 1;
+      animation: pulse 3s ease-in-out infinite;
+    }
+    #screen-title .sub {
       color: var(--yellow);
       letter-spacing: 0.3em;
-      margin-top: 0.5rem;
+      font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+      margin-top: 0.4rem;
       text-transform: uppercase;
     }
-
-    .divider {
-      width: 100%;
+    .title-divider {
+      width: min(400px, 90vw);
       height: 1px;
       background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-      margin: 2rem 0;
-      opacity: 0.6;
+      opacity: 0.5;
+      margin: 1.8rem 0;
     }
-
-    .tagline {
-      font-size: clamp(0.85rem, 2.5vw, 1rem);
+    #screen-title .tagline {
       color: #8899AA;
-      line-height: 1.7;
+      font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+      line-height: 1.9;
       letter-spacing: 0.05em;
+      text-align: center;
+      max-width: 380px;
+      margin-bottom: 2rem;
     }
+    #screen-title .tagline em { color: var(--green); font-style: normal; }
 
-    .tagline span { color: var(--green); }
-
-    .status {
-      margin-top: 2rem;
+    .title-deck-preview {
       display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .mini-card {
+      width: 44px; height: 56px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.6rem;
-      font-size: 0.8rem;
-      letter-spacing: 0.2em;
-      color: var(--red);
+      font-size: 1.1rem;
+      gap: 1px;
+    }
+    .mini-card span {
+      font-size: 0.4rem;
+      letter-spacing: 0.05em;
+      color: #8899AA;
     }
 
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--red);
-      box-shadow: 0 0 8px var(--red);
-      animation: blink 1.2s step-start infinite;
+    /* ═══════════════════════════════
+       COMBAT SCREEN
+    ═══════════════════════════════ */
+    #screen-combat {
+      justify-content: flex-start;
+      padding: 0;
     }
 
-    .badge {
-      margin-top: 2.5rem;
-      display: inline-block;
-      border: 1px solid var(--purple);
-      color: var(--purple);
+    /* HUD TOP */
+    #hud-top {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: rgba(8,12,20,0.95);
+      border-bottom: 1px solid rgba(0,230,255,0.15);
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .room-label {
       font-size: 0.7rem;
+      color: var(--yellow);
       letter-spacing: 0.2em;
-      padding: 0.35rem 1rem;
-      text-transform: uppercase;
-      box-shadow: 0 0 10px rgba(166,26,255,0.3);
+    }
+    #room-dots { display: flex; gap: 6px; }
+    .room-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 1px solid #334455;
+      transition: all 0.3s;
+    }
+    .room-dot.done   { background: var(--green); border-color: var(--green); box-shadow: 0 0 5px var(--green); }
+    .room-dot.active { background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+
+    /* ARENA */
+    #combat-arena {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      padding: 0.8rem 1rem;
+      overflow: hidden;
+      min-height: 0;
     }
 
+    /* ENTITY SECTIONS */
+    .entity-section {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .entity-name {
+      font-size: 0.95rem;
+      letter-spacing: 0.15em;
+      text-shadow: 0 0 10px currentColor;
+    }
+    .enemy-name { color: var(--red); }
+    .player-name { color: var(--cyan); }
+
+    .hp-bar-wrap {
+      width: 100%;
+      height: 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hp-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.35s ease;
+    }
+    .hp-bar.enemy-hp { background: linear-gradient(90deg, #c01030, var(--red)); box-shadow: 0 0 6px var(--red); }
+    .hp-bar.player-hp { background: linear-gradient(90deg, #0088aa, var(--cyan)); box-shadow: 0 0 6px var(--cyan); }
+    .hp-text {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; color: rgba(255,255,255,0.85); letter-spacing: 0.1em;
+    }
+
+    .status-pills {
+      display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; min-height: 22px;
+    }
+    .pill {
+      font-size: 0.6rem;
+      padding: 2px 7px;
+      border-radius: 2px;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .pill.block  { background: rgba(0,230,255,0.1);  border: 1px solid rgba(0,230,255,0.4);  color: var(--cyan); }
+    .pill.intent { background: rgba(255,38,64,0.1);  border: 1px solid rgba(255,38,64,0.4);  color: var(--red); }
+    .pill.buff   { background: rgba(166,26,255,0.1); border: 1px solid rgba(166,26,255,0.4); color: var(--purple); }
+    .pill.wait   { background: rgba(255,217,0,0.1);  border: 1px solid rgba(255,217,0,0.4);  color: var(--yellow); }
+
+    /* MIDDLE (energy + turn) */
+    #combat-middle {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    #energy-display {
+      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    }
+    #energy-pips { display: flex; gap: 5px; }
+    .energy-pip {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,217,0,0.4);
+      transition: all 0.2s;
+    }
+    .energy-pip.full { background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+    .energy-label { font-size: 0.55rem; color: rgba(255,217,0,0.7); letter-spacing: 0.18em; }
+
+    #turn-info {
+      font-size: 0.75rem; color: #8899AA; letter-spacing: 0.12em; text-align: center;
+    }
+
+    /* HAND AREA */
+    #hand-area {
+      width: 100%;
+      flex-shrink: 0;
+      background: rgba(8,12,20,0.9);
+      border-top: 1px solid rgba(0,230,255,0.12);
+      padding: 0.5rem 0.75rem 0.6rem;
+    }
+    #hand-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 0.4rem;
+    }
+    .hand-label { font-size: 0.6rem; color: #556677; letter-spacing: 0.18em; }
+
+    #hand-cards {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+      justify-content: center;
+      min-height: 116px;
+      align-items: flex-end;
+    }
+    #hand-cards::-webkit-scrollbar { display: none; }
+
+    /* ─── CARDS ─── */
+    .card {
+      flex-shrink: 0;
+      width: 78px; height: 112px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 5px;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0.35rem 0.35rem 0.4rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      position: relative;
+      user-select: none;
+    }
+    .card:not(.disabled):hover,
+    .card:not(.disabled):active {
+      transform: translateY(-14px) scale(1.03);
+    }
+    .card.attack:not(.disabled):hover,
+    .card.attack:not(.disabled):active {
+      border-color: var(--red); box-shadow: 0 4px 20px rgba(255,38,64,0.35);
+    }
+    .card.defense:not(.disabled):hover,
+    .card.defense:not(.disabled):active {
+      border-color: var(--cyan); box-shadow: 0 4px 20px rgba(0,230,255,0.35);
+    }
+    .card.heal:not(.disabled):hover,
+    .card.heal:not(.disabled):active {
+      border-color: var(--green); box-shadow: 0 4px 20px rgba(26,255,115,0.35);
+    }
+    .card.special:not(.disabled):hover,
+    .card.special:not(.disabled):active {
+      border-color: var(--purple); box-shadow: 0 4px 20px rgba(166,26,255,0.35);
+    }
+    .card.disabled { opacity: 0.38; cursor: not-allowed; filter: grayscale(0.4); }
+    .card-cost {
+      position: absolute; top: 4px; right: 4px;
+      width: 19px; height: 19px;
+      border-radius: 50%;
+      background: var(--yellow);
+      color: #080C14;
+      font-size: 0.6rem;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold;
+      box-shadow: 0 0 6px rgba(255,217,0,0.4);
+    }
+    .card-type-bar {
+      width: 100%;
+      height: 3px;
+      border-radius: 2px;
+      margin-bottom: 0.25rem;
+    }
+    .card.attack  .card-type-bar { background: var(--red); }
+    .card.defense .card-type-bar { background: var(--cyan); }
+    .card.heal    .card-type-bar { background: var(--green); }
+    .card.special .card-type-bar { background: var(--purple); }
+    .card-icon { font-size: 1.6rem; margin: 0.15rem 0 0.1rem; line-height: 1; }
+    .card-name {
+      font-size: 0.5rem; letter-spacing: 0.08em; text-align: center;
+      color: #AABBCC; text-transform: uppercase; margin-bottom: 2px;
+    }
+    .card-desc {
+      font-size: 0.45rem; color: #6677AA; text-align: center;
+      line-height: 1.35; margin-top: auto;
+    }
+
+    #end-turn-btn { width: 100%; margin-top: 0.5rem; font-size: 0.85rem; letter-spacing: 0.2em; }
+
+    /* ─── FLOATERS ─── */
+    .floater {
+      position: fixed;
+      font-size: 1.1rem;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 200;
+      animation: floatUp 0.9s ease forwards;
+      text-shadow: 0 0 8px currentColor;
+    }
+    .floater.damage { color: var(--red); }
+    .floater.heal   { color: var(--green); }
+    .floater.block  { color: var(--cyan); }
+    .floater.buff   { color: var(--purple); }
+
+    @keyframes floatUp {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      30%  { opacity: 1; transform: translateY(-20px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+    }
+
+    /* ═══════════════════════════════
+       REWARD SCREEN
+    ═══════════════════════════════ */
+    #screen-reward { gap: 1.2rem; }
+
+    #screen-reward .reward-title {
+      color: var(--yellow);
+      font-size: 1.1rem;
+      letter-spacing: 0.25em;
+      text-shadow: 0 0 15px var(--yellow);
+    }
+    #screen-reward .reward-sub {
+      color: #8899AA; font-size: 0.75rem; letter-spacing: 0.1em;
+    }
+    #reward-cards {
+      display: flex; gap: 0.9rem; flex-wrap: wrap; justify-content: center;
+    }
+    .reward-card {
+      width: 105px; height: 148px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 5px;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0.6rem 0.5rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      user-select: none;
+      position: relative;
+    }
+    .reward-card:hover, .reward-card:active {
+      transform: scale(1.07) translateY(-4px);
+      border-color: var(--yellow);
+      box-shadow: 0 0 25px rgba(255,217,0,0.35);
+    }
+    .reward-card .card-cost {
+      position: static; margin-bottom: 0.3rem;
+      width: 22px; height: 22px; font-size: 0.7rem;
+    }
+    .reward-card .card-type-bar { width: 100%; height: 3px; border-radius: 2px; margin-bottom: 0.3rem; }
+    .reward-card .card-icon { font-size: 2rem; margin: 0.2rem 0; }
+    .reward-card .card-name { font-size: 0.6rem; color: var(--yellow); letter-spacing: 0.1em; }
+    .reward-card .card-desc { font-size: 0.52rem; color: #8899AA; text-align: center; line-height: 1.4; margin-top: 0.4rem; }
+
+    /* ═══════════════════════════════
+       GAME OVER / WIN
+    ═══════════════════════════════ */
+    #screen-gameover, #screen-win { gap: 1.5rem; text-align: center; }
+
+    #screen-gameover h1 {
+      font-size: clamp(2.2rem, 9vw, 4.5rem);
+      color: var(--red);
+      text-shadow: 0 0 30px var(--red), 0 0 60px rgba(255,38,64,0.4);
+      letter-spacing: 0.2em;
+      animation: flicker 4s infinite;
+    }
+    #screen-win h1 {
+      font-size: clamp(2.2rem, 9vw, 4.5rem);
+      color: var(--green);
+      text-shadow: 0 0 30px var(--green), 0 0 60px rgba(26,255,115,0.4);
+      letter-spacing: 0.2em;
+    }
+    .end-stats {
+      color: #8899AA; font-size: 0.82rem; line-height: 2.1; letter-spacing: 0.08em;
+    }
+    .end-stats span { color: var(--cyan); }
+
+    /* ═══════════════════════════════
+       ANIMATIONS
+    ═══════════════════════════════ */
     @keyframes pulse {
       0%,100% { text-shadow: 0 0 20px var(--cyan), 0 0 60px var(--cyan); }
-      50%      { text-shadow: 0 0 30px var(--cyan), 0 0 90px var(--cyan), 0 0 120px var(--cyan); }
+      50%      { text-shadow: 0 0 30px var(--cyan), 0 0 90px var(--cyan), 0 0 130px var(--cyan); }
+    }
+    @keyframes flicker {
+      0%,100%  { opacity: 1; }
+      91%      { opacity: 1; }
+      92%      { opacity: 0.7; }
+      93%      { opacity: 1; }
+      96%      { opacity: 0.5; }
+      97%      { opacity: 1; }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%  { transform: translateX(-7px); }
+      35%  { transform: translateX(7px); }
+      55%  { transform: translateX(-5px); }
+      75%  { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.3s ease; }
+
+    @keyframes cardPlay {
+      0%   { transform: translateY(0) scale(1); opacity: 1; }
+      60%  { transform: translateY(-50px) scale(0.8); opacity: 0.6; }
+      100% { transform: translateY(-100px) scale(0.4); opacity: 0; }
+    }
+    .card-playing { animation: cardPlay 0.28s ease forwards !important; pointer-events: none !important; }
+
+    @keyframes roomClear {
+      0%   { opacity: 0; transform: scale(0.7); }
+      50%  { opacity: 1; transform: scale(1.15); }
+      100% { opacity: 0; transform: scale(1.3); }
+    }
+    .room-clear-flash {
+      position: fixed; inset: 0; z-index: 150;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+      animation: roomClear 0.7s ease forwards;
+    }
+    .room-clear-flash span {
+      color: var(--green);
+      font-size: clamp(1.5rem, 6vw, 3rem);
+      letter-spacing: 0.3em;
+      text-shadow: 0 0 30px var(--green), 0 0 60px var(--green);
     }
 
-    @keyframes blink {
-      0%,100% { opacity: 1; }
-      50%      { opacity: 0; }
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 400px) {
+      .card { width: 68px; height: 100px; }
+      .card-icon { font-size: 1.3rem; }
+      .reward-card { width: 90px; height: 130px; }
+    }
+    @media (max-height: 600px) {
+      #combat-arena { padding: 0.4rem 1rem; }
+      .card { height: 100px; }
+      #hand-area { padding: 0.4rem 0.75rem; }
     }
   </style>
 </head>
 <body>
-  <canvas id="grid"></canvas>
-  <div class="content">
+
+  <canvas id="canvas-bg"></canvas>
+
+  <!-- ══ TITLE SCREEN ══ -->
+  <div id="screen-title" class="screen">
     <div class="logo">NEON GRID</div>
     <div class="sub">Roguelike Card Battler</div>
-    <div class="divider"></div>
+    <div class="title-divider"></div>
     <p class="tagline">
-      Build your deck. Run the grid.<br/>
-      Every choice matters. <span>No save states. No second chances.</span><br/>
+      Build your deck. Survive 5 rooms.<br/>
+      <em>No save states. No mercy.</em><br/>
       Pure browser. Zero installs.
     </p>
-    <div class="status">
-      <div class="dot"></div>
-      TRANSMISSION INCOMING
-    </div>
-    <div class="badge">Open Source · Free Forever</div>
+    <div class="title-deck-preview" id="title-deck-preview"></div>
+    <button class="btn" id="btn-start">[ JACK IN ]</button>
   </div>
 
-  <script>
-    const canvas = document.getElementById('grid');
-    const ctx = canvas.getContext('2d');
+  <!-- ══ COMBAT SCREEN ══ -->
+  <div id="screen-combat" class="screen hidden">
+    <div id="hud-top">
+      <div class="room-label">ROOM <span id="room-num">1</span>/5</div>
+      <div id="room-dots"></div>
+    </div>
 
-    function resize() {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
+    <div id="combat-arena">
+      <!-- Enemy -->
+      <div class="entity-section" id="enemy-section">
+        <div class="entity-name enemy-name" id="enemy-name">SENTINEL</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar enemy-hp" id="enemy-hp-bar"></div>
+          <div class="hp-text" id="enemy-hp-text">15/15</div>
+        </div>
+        <div class="status-pills" id="enemy-pills"></div>
+      </div>
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = '#00E6FF';
-      ctx.lineWidth = 0.5;
-      const sz = 40;
-      for (let x = 0; x <= canvas.width; x += sz) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-      }
-      for (let y = 0; y <= canvas.height; y += sz) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-      }
-    }
+      <!-- Energy + Turn -->
+      <div id="combat-middle">
+        <div id="energy-display">
+          <div id="energy-pips"></div>
+          <div class="energy-label">ENERGY</div>
+        </div>
+        <div id="turn-info">TURN 1</div>
+      </div>
+
+      <!-- Player -->
+      <div class="entity-section" id="player-section">
+        <div class="status-pills" id="player-pills"></div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar player-hp" id="player-hp-bar"></div>
+          <div class="hp-text" id="player-hp-text">40/40</div>
+        </div>
+        <div class="entity-name player-name">OPERATOR</div>
+      </div>
+    </div>
+
+    <!-- Hand -->
+    <div id="hand-area">
+      <div id="hand-meta">
+        <div class="hand-label">HAND</div>
+        <div class="hand-label" id="deck-info">DRAW: 0 · DISC: 0</div>
+      </div>
+      <div id="hand-cards"></div>
+      <button class="btn" id="end-turn-btn">[ END TURN ]</button>
+    </div>
+  </div>
+
+  <!-- ══ REWARD SCREEN ══ -->
+  <div id="screen-reward" class="screen hidden">
+    <div class="reward-title">// UPLINK RECEIVED</div>
+    <div class="reward-sub">Select one card to add to your deck</div>
+    <div id="reward-cards"></div>
+    <button class="btn" id="btn-skip">[ SKIP REWARD ]</button>
+  </div>
+
+  <!-- ══ GAME OVER ══ -->
+  <div id="screen-gameover" class="screen hidden">
+    <h1>FLATLINED</h1>
+    <div class="end-stats" id="gameover-stats"></div>
+    <button class="btn red" id="btn-restart">[ REBOOT ]</button>
+  </div>
+
+  <!-- ══ WIN ══ -->
+  <div id="screen-win" class="screen hidden">
+    <h1>JAILBREAK</h1>
+    <div class="end-stats" id="win-stats"></div>
+    <button class="btn green" id="btn-play-again">[ RUN AGAIN ]</button>
+  </div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   NEON GRID — Complete Game Engine
+   Pure vanilla JS · No dependencies
+═══════════════════════════════════════════════════════ */
+
+// ── GRID BACKGROUND ──────────────────────────────────
+(function() {
+  const canvas = document.getElementById('canvas-bg');
+  const ctx    = canvas.getContext('2d');
+  function resize() {
+    canvas.width  = innerWidth;
+    canvas.height = innerHeight;
     draw();
-    window.addEventListener('resize', draw);
-  </script>
+  }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#00E6FF';
+    ctx.lineWidth   = 0.5;
+    const sz = 40;
+    for (let x = 0; x <= canvas.width + sz; x += sz) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y <= canvas.height + sz; y += sz) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ── CARD DEFINITIONS ─────────────────────────────────
+const CARD_DEFS = {
+  STRIKE:    { id:'STRIKE',    name:'STRIKE',    cost:1, type:'attack',  icon:'⚡', damage:6,  desc:'Deal 6 damage.' },
+  DEFEND:    { id:'DEFEND',    name:'DEFEND',    cost:1, type:'defense', icon:'🛡', block:5,   desc:'Gain 5 block.' },
+  SURGE:     { id:'SURGE',     name:'SURGE',     cost:1, type:'attack',  icon:'💥', aoe:3,     desc:'Deal 3 to all foes.' },
+  HACK:      { id:'HACK',      name:'HACK',      cost:2, type:'attack',  icon:'☠', damage:8,  desc:'Deal 8 damage.' },
+  PATCH:     { id:'PATCH',     name:'PATCH',     cost:1, type:'heal',    icon:'💊', heal:4,    desc:'Restore 4 HP.' },
+  OVERCLOCK: { id:'OVERCLOCK', name:'OVERCLOCK', cost:1, type:'special', icon:'⚙', energy:1,  desc:'Gain +1 energy now.' },
+};
+
+const CARD_TYPE_COLOR = {
+  attack: 'var(--red)', defense: 'var(--cyan)', heal: 'var(--green)', special: 'var(--purple)'
+};
+
+const REWARD_POOL = Object.keys(CARD_DEFS);
+
+// ── ENEMY DEFINITIONS ────────────────────────────────
+function makeEnemy(room) {
+  const defs = [
+    { name:'SENTINEL', maxHp:15, atk:4,  baseBlock:0, phantom:false, boss:false },
+    { name:'WARDEN',   maxHp:20, atk:5,  baseBlock:3, phantom:false, boss:false },
+    { name:'HUNTER',   maxHp:18, atk:7,  baseBlock:0, phantom:false, boss:false },
+    { name:'PHANTOM',  maxHp:25, atk:10, baseBlock:0, phantom:true,  boss:false },
+    { name:'ICE-9',    maxHp:40, atk:8,  baseBlock:5, phantom:false, boss:true  },
+  ];
+  const d = defs[room - 1];
+  return {
+    name:      d.name,
+    maxHp:     d.maxHp,
+    hp:        d.maxHp,
+    atk:       d.atk,
+    baseBlock: d.baseBlock,
+    curBlock:  d.baseBlock,
+    phantom:   d.phantom,
+    boss:      d.boss,
+    turn:      0,       // increments before enemy acts
+    buffed:    false,
+  };
+}
+
+// ── GAME STATE ───────────────────────────────────────
+const PLAYER_MAX_HP = 40;
+let G = {};             // live game state
+let inputLocked = false; // prevent double-input during animations
+
+function newGame() {
+  G = {
+    screen:        'title',
+    room:          1,
+    turn:          1,
+    totalRooms:    5,
+    player: {
+      hp:        PLAYER_MAX_HP,
+      maxHp:     PLAYER_MAX_HP,
+      block:     0,
+      energy:    3,
+      maxEnergy: 3,
+    },
+    enemy:         null,
+    deck:          ['STRIKE','STRIKE','DEFEND','DEFEND','PATCH'], // starter
+    drawPile:      [],
+    hand:          [],
+    discardPile:   [],
+    cardsPlayed:   0,
+  };
+}
+
+// ── SHUFFLE ──────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── DRAW CARDS ───────────────────────────────────────
+function drawCards(n) {
+  for (let i = 0; i < n; i++) {
+    if (G.drawPile.length === 0) {
+      if (G.discardPile.length === 0) break;
+      G.drawPile    = shuffle(G.discardPile);
+      G.discardPile = [];
+    }
+    G.hand.push(G.drawPile.pop());
+  }
+}
+
+// ── START COMBAT ─────────────────────────────────────
+function startCombat() {
+  inputLocked      = false;
+  G.enemy          = makeEnemy(G.room);
+  G.player.block   = 0;
+  G.player.energy  = G.player.maxEnergy;
+  G.turn           = 1;
+  G.drawPile       = shuffle([...G.deck]);
+  G.hand           = [];
+  G.discardPile    = [];
+  drawCards(4);
+  showScreen('combat');
+  renderCombat();
+}
+
+function startGame() {
+  newGame();
+  startCombat();
+}
+
+// ── PLAY CARD ────────────────────────────────────────
+function playCard(handIdx) {
+  if (inputLocked || G.screen !== 'combat') return false;
+
+  const cardId = G.hand[handIdx];
+  if (!cardId) return false;
+  const card = CARD_DEFS[cardId];
+  if (G.player.energy < card.cost) return false;
+
+  // Remove from hand & charge energy
+  G.hand.splice(handIdx, 1);
+  G.player.energy -= card.cost;
+  G.cardsPlayed++;
+
+  const e = G.enemy;
+  const p = G.player;
+
+  // Apply effect
+  if (card.damage) {
+    const absorbed = Math.min(card.damage, e.curBlock);
+    const actual   = card.damage - absorbed;
+    e.curBlock     = Math.max(0, e.curBlock - card.damage);
+    e.hp          -= actual;
+    if (actual > 0) floatText(`-${actual}`, 'damage', 'enemy');
+    if (absorbed > 0) floatText('BLOCKED', 'block', 'enemy');
+  }
+  if (card.aoe) {
+    const absorbed = Math.min(card.aoe, e.curBlock);
+    const actual   = card.aoe - absorbed;
+    e.curBlock     = Math.max(0, e.curBlock - card.aoe);
+    e.hp          -= actual;
+    if (actual > 0) floatText(`-${actual}`, 'damage', 'enemy');
+  }
+  if (card.block) {
+    p.block += card.block;
+    floatText(`+${card.block} BLK`, 'block', 'player');
+  }
+  if (card.heal) {
+    const healed = Math.min(card.heal, p.maxHp - p.hp);
+    p.hp += healed;
+    floatText(`+${healed} HP`, 'heal', 'player');
+  }
+  if (card.energy) {
+    p.energy = Math.min(p.maxEnergy + 3, p.energy + card.energy);
+    floatText(`+${card.energy} NRG`, 'buff', 'player');
+  }
+
+  G.discardPile.push(cardId);
+
+  // Check enemy death
+  if (e.hp <= 0) {
+    e.hp = 0;
+    renderCombat();
+    inputLocked = true;
+    setTimeout(roomCleared, 700);
+    return true;
+  }
+
+  renderCombat();
+  return true;
+}
+
+// ── ENEMY TURN ───────────────────────────────────────
+function enemyTurn() {
+  const e = G.enemy;
+  const p = G.player;
+
+  e.turn++;
+
+  // Boss: buff on turn 3
+  if (e.boss && e.turn === 3 && !e.buffed) {
+    e.buffed    = true;
+    e.atk      += 4;
+    e.baseBlock += 3;
+    floatText('BUFFED!', 'buff', 'enemy');
+  }
+
+  // Block resets each enemy turn
+  e.curBlock = e.baseBlock;
+
+  // Phantom: alternates 0/attack (turn 1=atk, 2=wait, 3=atk...)
+  let dmg = e.atk;
+  if (e.phantom) {
+    dmg = (e.turn % 2 === 1) ? e.atk : 0;
+  }
+
+  if (dmg > 0) {
+    const absorbed = Math.min(dmg, p.block);
+    const actual   = dmg - absorbed;
+    p.block        = Math.max(0, p.block - dmg);
+    p.hp          -= actual;
+    p.hp           = Math.max(0, p.hp);
+    if (actual > 0) {
+      floatText(`-${actual}`, 'damage', 'player');
+      shakeEl(document.getElementById('player-section'));
+    }
+    if (absorbed > 0) floatText('BLOCKED', 'block', 'player');
+  } else if (e.phantom) {
+    floatText('RECHARGING', 'buff', 'enemy');
+  }
+
+  renderCombat();
+
+  if (p.hp <= 0) {
+    inputLocked = true;
+    setTimeout(gameOver, 700);
+    return;
+  }
+
+  // Start new player turn
+  setTimeout(() => {
+    G.turn++;
+    p.block   = 0;
+    p.energy  = p.maxEnergy;
+    drawCards(4);
+    inputLocked = false;
+    renderCombat();
+  }, 500);
+}
+
+// ── END TURN ─────────────────────────────────────────
+function endTurn() {
+  if (inputLocked || G.screen !== 'combat') return;
+  inputLocked = true;
+
+  // Discard hand
+  G.discardPile.push(...G.hand);
+  G.hand = [];
+  renderCombat();
+
+  setTimeout(enemyTurn, 350);
+}
+
+// ── ROOM CLEARED ─────────────────────────────────────
+function roomCleared() {
+  // Flash effect
+  const flash = document.createElement('div');
+  flash.className = 'room-clear-flash';
+  flash.innerHTML = '<span>ROOM CLEARED</span>';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 700);
+
+  setTimeout(() => {
+    if (G.room >= G.totalRooms) {
+      showWin();
+    } else {
+      showReward();
+    }
+  }, 700);
+}
+
+// ── REWARD SCREEN ────────────────────────────────────
+function showReward() {
+  // 3 unique random cards
+  const pool    = shuffle(REWARD_POOL);
+  const choices = pool.slice(0, 3);
+
+  const container = document.getElementById('reward-cards');
+  container.innerHTML = '';
+
+  choices.forEach(cardId => {
+    const card = CARD_DEFS[cardId];
+    const el   = document.createElement('div');
+    el.className = `reward-card ${card.type}`;
+    el.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-type-bar" style="background:${CARD_TYPE_COLOR[card.type]}"></div>
+      <div class="card-icon">${card.icon}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-desc">${card.desc}</div>
+    `;
+    addClickAndTouch(el, () => selectReward(cardId));
+    container.appendChild(el);
+  });
+
+  showScreen('reward');
+}
+
+function selectReward(cardId) {
+  G.deck.push(cardId);
+  nextRoom();
+}
+
+function nextRoom() {
+  G.room++;
+  startCombat();
+}
+
+// ── GAME OVER ────────────────────────────────────────
+function gameOver() {
+  document.getElementById('gameover-stats').innerHTML =
+    `Rooms survived: <span>${G.room}/5</span><br/>` +
+    `Cards played: <span>${G.cardsPlayed}</span><br/>` +
+    `Final HP: <span>0/${G.player.maxHp}</span>`;
+  showScreen('gameover');
+}
+
+// ── WIN ──────────────────────────────────────────────
+function showWin() {
+  document.getElementById('win-stats').innerHTML =
+    `All <span>5</span> rooms cleared<br/>` +
+    `Cards played: <span>${G.cardsPlayed}</span><br/>` +
+    `HP remaining: <span>${G.player.hp}/${G.player.maxHp}</span><br/>` +
+    `ICE-9 <span>DESTROYED</span>`;
+  showScreen('win');
+}
+
+// ── SCREEN MANAGEMENT ────────────────────────────────
+const ALL_SCREENS = ['title','combat','reward','gameover','win'];
+function showScreen(name) {
+  G.screen = name;
+  ALL_SCREENS.forEach(s => {
+    document.getElementById(`screen-${s}`).classList.toggle('hidden', s !== name);
+  });
+}
+
+// ── ENEMY INTENT ─────────────────────────────────────
+function getEnemyIntentDmg(e) {
+  // What will the enemy do on their NEXT turn?
+  const nextTurn = e.turn + 1;
+  if (e.phantom) return (nextTurn % 2 === 1) ? e.atk : 0;
+  if (e.boss && nextTurn === 3 && !e.buffed) return e.atk + 4; // will buff+attack
+  return e.atk;
+}
+
+// ── RENDER COMBAT ────────────────────────────────────
+function renderCombat() {
+  const e = G.enemy;
+  const p = G.player;
+
+  // HUD
+  document.getElementById('room-num').textContent = G.room;
+  renderRoomDots();
+
+  // Enemy
+  const eIsBoss = e.boss;
+  document.getElementById('enemy-name').textContent = (eIsBoss ? '⚠ ' : '') + e.name;
+  const ePct = Math.max(0, e.hp / e.maxHp * 100);
+  document.getElementById('enemy-hp-bar').style.width = ePct + '%';
+  document.getElementById('enemy-hp-text').textContent = `${Math.max(0,e.hp)}/${e.maxHp}`;
+
+  const ePills = document.getElementById('enemy-pills');
+  ePills.innerHTML = '';
+  if (e.curBlock > 0) ePills.innerHTML += `<span class="pill block">🛡 ${e.curBlock}</span>`;
+  if (e.buffed)       ePills.innerHTML += `<span class="pill buff">⬆ BUFFED</span>`;
+  const intent = getEnemyIntentDmg(e);
+  if (intent === 0) {
+    ePills.innerHTML += `<span class="pill wait">◌ WAIT</span>`;
+  } else {
+    ePills.innerHTML += `<span class="pill intent">⚔ ${intent}</span>`;
+  }
+
+  // Player
+  const pPct = Math.max(0, p.hp / p.maxHp * 100);
+  document.getElementById('player-hp-bar').style.width = pPct + '%';
+  document.getElementById('player-hp-text').textContent = `${p.hp}/${p.maxHp}`;
+  const pPills = document.getElementById('player-pills');
+  pPills.innerHTML = p.block > 0 ? `<span class="pill block">🛡 ${p.block}</span>` : '';
+
+  // Energy
+  const pipsEl = document.getElementById('energy-pips');
+  pipsEl.innerHTML = '';
+  const totalPips = Math.max(p.maxEnergy, p.energy);
+  for (let i = 0; i < totalPips; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'energy-pip' + (i < p.energy ? ' full' : '');
+    pipsEl.appendChild(pip);
+  }
+
+  // Turn
+  document.getElementById('turn-info').textContent = `TURN ${G.turn}`;
+  document.getElementById('deck-info').textContent =
+    `DRAW: ${G.drawPile.length} · DISC: ${G.discardPile.length}`;
+
+  renderHand();
+}
+
+function renderRoomDots() {
+  const container = document.getElementById('room-dots');
+  container.innerHTML = '';
+  for (let i = 1; i <= G.totalRooms; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'room-dot' +
+      (i < G.room ? ' done' : i === G.room ? ' active' : '');
+    container.appendChild(dot);
+  }
+}
+
+function renderHand() {
+  const container = document.getElementById('hand-cards');
+  container.innerHTML = '';
+  const p = G.player;
+
+  G.hand.forEach((cardId, idx) => {
+    const card    = CARD_DEFS[cardId];
+    const canPlay = !inputLocked && p.energy >= card.cost;
+    const el      = document.createElement('div');
+    el.className  = `card ${card.type}${canPlay ? '' : ' disabled'}`;
+    el.innerHTML  = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-type-bar" style="background:${CARD_TYPE_COLOR[card.type]}"></div>
+      <div class="card-icon">${card.icon}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-desc">${card.desc}</div>
+    `;
+    if (canPlay) {
+      addClickAndTouch(el, () => handleCardClick(idx, el));
+    }
+    container.appendChild(el);
+  });
+}
+
+function handleCardClick(idx, el) {
+  if (inputLocked || G.screen !== 'combat') return;
+  inputLocked = true;
+  el.classList.add('card-playing');
+  setTimeout(() => {
+    const played = playCard(idx);
+    if (!played) inputLocked = false;
+  }, 200);
+}
+
+// ── FLOATERS ─────────────────────────────────────────
+function floatText(text, type, target) {
+  const sectionId = target === 'enemy' ? 'enemy-section' : 'player-section';
+  const section   = document.getElementById(sectionId);
+  if (!section) return;
+  const rect = section.getBoundingClientRect();
+
+  const el       = document.createElement('div');
+  el.className   = `floater ${type}`;
+  el.textContent = text;
+  el.style.left  = (rect.left + rect.width / 2 + (Math.random() * 20 - 10)) + 'px';
+  el.style.top   = (rect.top  + rect.height / 2) + 'px';
+
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 950);
+}
+
+// ── SHAKE ────────────────────────────────────────────
+function shakeEl(el) {
+  if (!el) return;
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 320);
+}
+
+// ── TOUCH + CLICK HELPER ─────────────────────────────
+function addClickAndTouch(el, fn) {
+  let touchFired = false;
+  el.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    touchFired = true;
+    fn();
+    setTimeout(() => { touchFired = false; }, 400);
+  });
+  el.addEventListener('click', () => {
+    if (!touchFired) fn();
+  });
+}
+
+// ── TITLE DECK PREVIEW ───────────────────────────────
+function renderTitlePreview() {
+  const preview  = document.getElementById('title-deck-preview');
+  const starters = ['STRIKE','STRIKE','DEFEND','DEFEND','PATCH'];
+  preview.innerHTML = '';
+  starters.forEach(id => {
+    const c  = CARD_DEFS[id];
+    const el = document.createElement('div');
+    el.className = 'mini-card';
+    el.innerHTML = `${c.icon}<span>${c.name.slice(0,3)}</span>`;
+    preview.appendChild(el);
+  });
+}
+
+// ── EVENTS ───────────────────────────────────────────
+addClickAndTouch(document.getElementById('btn-start'),     startGame);
+addClickAndTouch(document.getElementById('end-turn-btn'),  endTurn);
+addClickAndTouch(document.getElementById('btn-skip'),      () => nextRoom());
+addClickAndTouch(document.getElementById('btn-restart'),   startGame);
+addClickAndTouch(document.getElementById('btn-play-again'), startGame);
+
+// ── INIT ─────────────────────────────────────────────
+newGame();
+renderTitlePreview();
+showScreen('title');
+
+</script>
 </body>
 </html>
