@@ -705,6 +705,154 @@
       #hand-cards { gap: 0.35rem; }
     }
 
+    /* ─── TUTORIAL MODAL ─── */
+    #tutorial-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8,12,20,0.93);
+      padding: 1rem;
+    }
+    #tutorial-modal.hidden { display: none !important; }
+    .tutorial-box {
+      max-width: 420px;
+      width: 100%;
+      border: 1px solid var(--cyan);
+      background: rgba(8,12,20,0.99);
+      box-shadow: 0 0 50px rgba(0,230,255,0.12), inset 0 0 40px rgba(0,0,0,0.6);
+      padding: 1.5rem 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      max-height: 90vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .tutorial-box::-webkit-scrollbar { display: none; }
+    .tutorial-title {
+      color: var(--cyan);
+      font-size: clamp(0.85rem, 3vw, 1.05rem);
+      letter-spacing: 0.2em;
+      text-shadow: 0 0 18px var(--cyan);
+      text-align: center;
+    }
+    .tutorial-section { display: flex; flex-direction: column; gap: 0.2rem; }
+    .tutorial-section h3 {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+    .tutorial-section p {
+      font-size: 0.66rem;
+      color: #8899AA;
+      letter-spacing: 0.04em;
+      line-height: 1.75;
+    }
+    .tutorial-section p em { color: var(--cyan); font-style: normal; }
+    .tutorial-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,230,255,0.25), transparent);
+    }
+    #btn-tutorial-start {
+      color: var(--green);
+      border-color: var(--green);
+      box-shadow: 0 0 12px rgba(26,255,115,0.2);
+      margin-top: 0.3rem;
+      align-self: center;
+    }
+    #btn-tutorial-start:hover,
+    #btn-tutorial-start:active { background: rgba(26,255,115,0.1); box-shadow: 0 0 22px rgba(26,255,115,0.45); }
+
+    /* ─── HELP BUTTON ─── */
+    #help-btn {
+      background: transparent;
+      border: 1px solid rgba(0,230,255,0.28);
+      color: rgba(0,230,255,0.55);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+    #help-btn:hover { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,230,255,0.3); }
+
+    /* ─── CARD TOOLTIPS ─── */
+    .card-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8,12,20,0.98);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-size: 0.58rem;
+      padding: 4px 9px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 100;
+      box-shadow: 0 0 14px rgba(0,230,255,0.3);
+      letter-spacing: 0.04em;
+    }
+    .card-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: var(--cyan);
+    }
+    @media (pointer: fine) {
+      .card:not(.disabled):hover .card-tooltip { opacity: 1; }
+    }
+    .card.show-tooltip .card-tooltip { opacity: 1; }
+
+    /* ─── ENEMY INTENT INDICATOR ─── */
+    #enemy-intent-display {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      color: #FF6633;
+      text-shadow: 0 0 8px rgba(255,100,50,0.55);
+      text-align: center;
+      min-height: 1.1em;
+    }
+
+    /* ─── HAND SUBTITLE ─── */
+    #hand-subtitle {
+      font-size: 0.54rem;
+      color: #445566;
+      letter-spacing: 0.09em;
+      text-align: center;
+      margin-top: 0.3rem;
+      padding-top: 0.25rem;
+      border-top: 1px solid rgba(0,230,255,0.06);
+    }
+
+    /* ─── PLAY FEEDBACK FLOATER ─── */
+    .floater-center {
+      position: fixed;
+      font-size: 1.2rem;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 200;
+      animation: floatUpCenter 0.95s ease forwards;
+      text-shadow: 0 0 10px currentColor;
+      letter-spacing: 0.05em;
+      transform: translateX(-50%);
+    }
+    @keyframes floatUpCenter {
+      0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      25%  { opacity: 1; transform: translateX(-50%) translateY(-18px) scale(1.15); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-65px) scale(0.8); }
+    }
+
     /* ─── TOUCH SWIPE AREA ─── */
     #swipe-hint {
       display: none;
@@ -737,6 +885,39 @@
 
   <canvas id="canvas-bg"></canvas>
 
+  <!-- ══ TUTORIAL MODAL ══ -->
+  <div id="tutorial-modal" class="hidden">
+    <div class="tutorial-box">
+      <div class="tutorial-title">// HOW TO RUN THE GRID</div>
+      <div class="tutorial-divider"></div>
+
+      <div class="tutorial-section">
+        <h3>◆ Your Hand</h3>
+        <p>Each turn you draw <em>4 cards</em>. Click or tap a card to play it. Cards cost energy shown as <em>◆ pips</em> — you get <em>3 energy</em> per turn.</p>
+      </div>
+      <div class="tutorial-divider"></div>
+
+      <div class="tutorial-section">
+        <h3>⏎ End Your Turn</h3>
+        <p>Click <em>[ END TURN ]</em> when done playing cards. The enemy then attacks. Repeat until one of you hits <em>0 HP</em>.</p>
+      </div>
+      <div class="tutorial-divider"></div>
+
+      <div class="tutorial-section">
+        <h3>🛡 Block</h3>
+        <p><em>DEFEND</em> gives you block. Block absorbs incoming damage first. It resets to zero at the start of each new turn — use it or lose it.</p>
+      </div>
+      <div class="tutorial-divider"></div>
+
+      <div class="tutorial-section">
+        <h3>⬆ Between Rooms</h3>
+        <p>After each fight, pick <em>1 of 3 cards</em> to add to your deck. Your deck reshuffles automatically when the draw pile runs out.</p>
+      </div>
+
+      <button class="btn" id="btn-tutorial-start">[ RUN THE GRID ]</button>
+    </div>
+  </div>
+
   <!-- ══ TITLE SCREEN ══ -->
   <div id="screen-title" class="screen">
     <div class="logo">NEON GRID</div>
@@ -756,12 +937,14 @@
     <div id="hud-top">
       <div class="room-label">ROOM <span id="room-num">1</span>/5</div>
       <div id="room-dots"></div>
+      <button id="help-btn" title="How to play">?</button>
     </div>
 
     <div id="combat-arena">
       <!-- Enemy -->
       <div class="entity-section" id="enemy-section">
         <div class="entity-name enemy-name" id="enemy-name">SENTINEL</div>
+        <div id="enemy-intent-display"></div>
         <div class="hp-bar-wrap">
           <div class="hp-bar enemy-hp" id="enemy-hp-bar"></div>
           <div class="hp-text" id="enemy-hp-text">15/15</div>
@@ -800,7 +983,8 @@
       </div>
       <div id="hand-cards"></div>
       <div id="swipe-hint">← swipe to scroll · tap to play →</div>
-      <button class="btn" id="end-turn-btn">[ END TURN ]</button>
+      <button class="btn" id="end-turn-btn">[ END TURN → ENEMY ATTACKS ]</button>
+      <div id="hand-subtitle">Playing cards costs ◆ energy · End turn when ready</div>
     </div>
   </div>
 
@@ -871,6 +1055,15 @@ const CARD_DEFS = {
 
 const CARD_TYPE_COLOR = {
   attack: 'var(--red)', defense: 'var(--cyan)', heal: 'var(--green)', special: 'var(--purple)'
+};
+
+const TOOLTIP_DESCS = {
+  STRIKE:    'Deal 6 damage',
+  DEFEND:    'Gain 5 block (absorbs damage)',
+  SURGE:     'Deal 3 damage to all enemies',
+  HACK:      'Deal 8 damage (costs 2 ◆)',
+  PATCH:     'Heal 4 HP',
+  OVERCLOCK: 'Gain +1 energy this turn',
 };
 
 const REWARD_POOL = Object.keys(CARD_DEFS);
@@ -1048,7 +1241,10 @@ function playCard(handIdx) {
     const actual   = card.damage - absorbed;
     e.curBlock     = Math.max(0, e.curBlock - card.damage);
     e.hp          -= actual;
-    if (actual > 0) floatText(`-${actual}`, 'damage', 'enemy');
+    if (actual > 0) {
+      floatText(`-${actual}`, 'damage', 'enemy');
+      floatBattlefield(`⚔ ${actual} DMG`, 'var(--red)');
+    }
     if (absorbed > 0) floatText('BLOCKED', 'block', 'enemy');
   }
   if (card.aoe) {
@@ -1056,20 +1252,26 @@ function playCard(handIdx) {
     const actual   = card.aoe - absorbed;
     e.curBlock     = Math.max(0, e.curBlock - card.aoe);
     e.hp          -= actual;
-    if (actual > 0) floatText(`-${actual}`, 'damage', 'enemy');
+    if (actual > 0) {
+      floatText(`-${actual}`, 'damage', 'enemy');
+      floatBattlefield(`⚔ ${actual} DMG`, 'var(--red)');
+    }
   }
   if (card.block) {
     p.block += card.block;
     floatText(`+${card.block} BLK`, 'block', 'player');
+    floatBattlefield(`🛡 ${card.block} BLK`, 'var(--cyan)');
   }
   if (card.heal) {
     const healed = Math.min(card.heal, p.maxHp - p.hp);
     p.hp += healed;
     floatText(`+${healed} HP`, 'heal', 'player');
+    floatBattlefield(`💚 +${healed} HP`, 'var(--green)');
   }
   if (card.energy) {
     p.energy = Math.min(p.maxEnergy + 3, p.energy + card.energy);
     floatText(`+${card.energy} NRG`, 'buff', 'player');
+    floatBattlefield(`+ ${card.energy} ◆`, 'var(--yellow)');
   }
 
   G.discardPile.push(cardId);
@@ -1360,17 +1562,24 @@ function renderCombat(animateHand) {
       e.raged ? 'var(--purple)' : e.buffed ? '#FF8800' : 'var(--red)';
   }
 
+  // Enemy intent indicator (above HP bar)
+  const intentDmg = getEnemyIntentDmg(e);
+  const intentEl  = document.getElementById('enemy-intent-display');
+  if (intentDmg === 0) {
+    intentEl.textContent = '◌ RECHARGING';
+    intentEl.style.color = 'var(--yellow)';
+    intentEl.style.textShadow = '0 0 8px rgba(255,217,0,0.4)';
+  } else {
+    intentEl.textContent = `⚡ ${intentDmg} DMG incoming`;
+    intentEl.style.color = '#FF6633';
+    intentEl.style.textShadow = '0 0 8px rgba(255,100,50,0.5)';
+  }
+
   const ePills = document.getElementById('enemy-pills');
   ePills.innerHTML = '';
   if (e.curBlock > 0) ePills.innerHTML += `<span class="pill block">🛡 ${e.curBlock}</span>`;
   if (e.buffed)       ePills.innerHTML += `<span class="pill buff">⬆ BUFFED</span>`;
   if (e.raged)        ePills.innerHTML += `<span class="pill buff" style="color:var(--purple)">💢 ENRAGED</span>`;
-  const intent = getEnemyIntentDmg(e);
-  if (intent === 0) {
-    ePills.innerHTML += `<span class="pill wait">◌ WAIT</span>`;
-  } else {
-    ePills.innerHTML += `<span class="pill intent">⚔ ${intent}</span>`;
-  }
 
   // Player
   const pPct = Math.max(0, p.hp / p.maxHp * 100);
@@ -1426,13 +1635,27 @@ function renderHand(animate) {
     const canPlay   = !inputLocked && p.energy >= card.cost;
     const el        = document.createElement('div');
     el.className    = `card ${card.type}${canPlay ? '' : ' disabled'}${animate ? ' dealing' : ''}`;
+    const tipText   = TOOLTIP_DESCS[cardId] || card.desc;
     el.innerHTML    = `
+      <div class="card-tooltip">${tipText}</div>
       <div class="card-cost">${card.cost}</div>
       <div class="card-type-bar" style="background:${CARD_TYPE_COLOR[card.type]}"></div>
       <div class="card-icon">${card.icon}</div>
       <div class="card-name">${card.name}</div>
       <div class="card-desc">${card.desc}</div>
     `;
+
+    // Long-press tooltip for mobile
+    let lpTimer = null;
+    el.addEventListener('touchstart', () => {
+      lpTimer = setTimeout(() => { el.classList.add('show-tooltip'); }, 500);
+    }, { passive: true });
+    el.addEventListener('touchmove',  () => { clearTimeout(lpTimer); lpTimer = null; }, { passive: true });
+    el.addEventListener('touchend',   () => {
+      clearTimeout(lpTimer); lpTimer = null;
+      setTimeout(() => el.classList.remove('show-tooltip'), 900);
+    });
+
     if (canPlay) {
       addClickAndTouch(el, () => handleCardClick(idx, el));
     }
@@ -1548,12 +1771,66 @@ function renderTitlePreview() {
   });
 }
 
+// ── TUTORIAL ─────────────────────────────────────────
+const TUTORIAL_KEY = 'neon-grid-tutorial-seen';
+
+function hasTutorialBeenSeen() {
+  try { return !!localStorage.getItem(TUTORIAL_KEY); } catch(e) { return false; }
+}
+function markTutorialSeen() {
+  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch(e) {}
+}
+
+function showTutorial(onDone) {
+  const modal    = document.getElementById('tutorial-modal');
+  const startBtn = document.getElementById('btn-tutorial-start');
+  modal.classList.remove('hidden');
+  // Clone button to remove previous listeners
+  const fresh = startBtn.cloneNode(true);
+  startBtn.parentNode.replaceChild(fresh, startBtn);
+  function dismiss() {
+    markTutorialSeen();
+    modal.classList.add('hidden');
+    if (onDone) onDone();
+  }
+  addClickAndTouch(fresh, dismiss);
+}
+
+// ── BATTLEFIELD FLOAT ─────────────────────────────────
+function floatBattlefield(text, color) {
+  const arena = document.getElementById('combat-arena');
+  if (!arena) return;
+  const rect  = arena.getBoundingClientRect();
+
+  const el     = document.createElement('div');
+  el.className = 'floater-center';
+  el.textContent = text;
+  el.style.color = color;
+  el.style.left  = (rect.left + rect.width / 2) + 'px';
+  el.style.top   = (rect.top  + rect.height * 0.52) + 'px';
+
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
 // ── EVENTS ───────────────────────────────────────────
-addClickAndTouch(document.getElementById('btn-start'),     startGame);
+addClickAndTouch(document.getElementById('btn-start'), () => {
+  newGame();
+  if (hasTutorialBeenSeen()) {
+    startCombat();
+  } else {
+    showTutorial(() => startCombat());
+  }
+});
 addClickAndTouch(document.getElementById('end-turn-btn'),  endTurn);
 addClickAndTouch(document.getElementById('btn-skip'),      () => nextRoom());
 addClickAndTouch(document.getElementById('btn-restart'),   startGame);
 addClickAndTouch(document.getElementById('btn-play-again'), startGame);
+
+// Help button — re-show tutorial overlay without starting a new game
+document.getElementById('help-btn').addEventListener('click', () => {
+  showTutorial(null);
+});
 
 // ── INIT ─────────────────────────────────────────────
 newGame();
