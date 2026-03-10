@@ -1007,6 +1007,22 @@
     }
     #help-btn:hover { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,230,255,0.3); }
 
+    /* ─── SFX MUTE BUTTON ─── */
+    #sfx-btn {
+      background: transparent;
+      border: 1px solid rgba(0,230,255,0.28);
+      color: rgba(0,230,255,0.55);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: all 0.15s;
+      line-height: 1;
+      margin-left: 4px;
+    }
+    #sfx-btn:hover { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,230,255,0.3); }
+
     /* ─── CARD TOOLTIPS ─── */
     .card-tooltip {
       position: absolute;
@@ -1168,6 +1184,7 @@
     <div id="hud-top">
       <div class="room-label">ROOM <span id="room-num">1</span>/5</div>
       <div id="room-dots"></div>
+      <button id="sfx-btn" title="Toggle sound">🔊</button>
       <button id="help-btn" title="How to play">?</button>
     </div>
 
@@ -1265,6 +1282,322 @@
    NEON GRID — Full Visual Overhaul + Complete Game Engine
    Pure vanilla JS · No dependencies
 ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+   WEB AUDIO SFX ENGINE — Procedural synthesis, zero deps
+═══════════════════════════════════════════════════════ */
+let audioCtx   = null;
+let masterGain = null;
+let sfxMuted   = false;
+
+// Load persisted mute preference
+try { sfxMuted = localStorage.getItem('neon-grid-sfx-muted') === '1'; } catch(e) {}
+
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = sfxMuted ? 0 : 1;
+    masterGain.connect(audioCtx.destination);
+  } catch(e) { audioCtx = null; }
+}
+
+// Lazy-init on first gesture
+document.addEventListener('click',     initAudio, { passive: true });
+document.addEventListener('touchstart', initAudio, { passive: true });
+
+const SFX = {
+  // Sharp punchy zap — sawtooth burst, pitch drops fast
+  strike() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(900, t);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 0.13);
+    g.gain.setValueAtTime(0.4, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.15);
+  },
+
+  // Wider electric crackle — sawtooth + slight reverb tail
+  surge() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [[600, 180, 0.35], [950, 100, 0.3]].forEach(([f0, f1, dur], i) => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f0, t + i * 0.05);
+      osc.frequency.exponentialRampToValueAtTime(f1, t + i * 0.05 + dur);
+      g.gain.setValueAtTime(0.28, t + i * 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + dur + 0.05);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t + i * 0.05); osc.stop(t + i * 0.05 + dur + 0.05);
+    });
+  },
+
+  // Solid thunk + low hum — sine, low freq, short
+  defend() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130, t);
+    osc.frequency.exponentialRampToValueAtTime(55, t + 0.18);
+    g.gain.setValueAtTime(0.55, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.28);
+  },
+
+  // Soft ascending chime — sine, rises 300→800 Hz
+  patch() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.32);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.3, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.5);
+  },
+
+  // Power-up trill — rapid freq sweep upward + LFO wobble
+  overclock() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    const lfo = audioCtx.createOscillator();
+    const lg  = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(1400, t + 0.42);
+    g.gain.setValueAtTime(0.28, t);
+    g.gain.setValueAtTime(0.28, t + 0.38);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    lfo.frequency.value = 28;
+    lg.gain.value = 60;
+    lfo.connect(lg); lg.connect(osc.frequency);
+    osc.connect(g); g.connect(masterGain);
+    lfo.start(t); lfo.stop(t + 0.5);
+    osc.start(t); osc.stop(t + 0.5);
+  },
+
+  // Metallic clank — square wave burst, mid freq
+  enemyDamage() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(480, t);
+    osc.frequency.exponentialRampToValueAtTime(220, t + 0.1);
+    g.gain.setValueAtTime(0.22, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.14);
+  },
+
+  // Heavy thud + distortion — low freq, quick decay
+  playerDamage() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    // Low thud
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(90, t);
+    osc.frequency.exponentialRampToValueAtTime(28, t + 0.3);
+    g.gain.setValueAtTime(0.65, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.38);
+    // Noise burst
+    const samples = Math.floor(audioCtx.sampleRate * 0.1);
+    const buf  = audioCtx.createBuffer(1, samples, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < samples; i++) data[i] = (Math.random() * 2 - 1) * 0.9;
+    const ns  = audioCtx.createBufferSource();
+    const ng  = audioCtx.createGain();
+    ns.buffer = buf;
+    ng.gain.setValueAtTime(0.28, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    ns.connect(ng); ng.connect(masterGain);
+    ns.start(t);
+  },
+
+  // Explosion + static burst — noise + low boom
+  enemyDies() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    // Low boom
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(18, t + 0.55);
+    g.gain.setValueAtTime(0.65, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.6);
+    // Static burst
+    const samples = Math.floor(audioCtx.sampleRate * 0.4);
+    const buf  = audioCtx.createBuffer(1, samples, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < samples; i++) data[i] = Math.random() * 2 - 1;
+    const ns   = audioCtx.createBufferSource();
+    const filt = audioCtx.createBiquadFilter();
+    const ng   = audioCtx.createGain();
+    ns.buffer = buf;
+    filt.type = 'bandpass';
+    filt.frequency.value = 1000;
+    filt.Q.value = 0.7;
+    ng.gain.setValueAtTime(0.45, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    ns.connect(filt); filt.connect(ng); ng.connect(masterGain);
+    ns.start(t);
+  },
+
+  // Victory sting — short rising 3-note melody (sine)
+  roomCleared() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const st = t + i * 0.14;
+      g.gain.setValueAtTime(0, st);
+      g.gain.linearRampToValueAtTime(0.32, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, st + 0.38);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(st); osc.stop(st + 0.38);
+    });
+  },
+
+  // Ominous drone — slow-building low sine + harmonics
+  bossIntro() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [55, 110, 165, 220].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const vol = 0.28 / (i + 1);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 1.0);
+      g.gain.setValueAtTime(vol, t + 1.8);
+      g.gain.linearRampToValueAtTime(0, t + 2.6);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t); osc.stop(t + 2.6);
+    });
+  },
+
+  // Descending tone — slow downward freq sweep, fade out
+  gameOver() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(440, t);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 1.9);
+    g.gain.setValueAtTime(0.28, t);
+    g.gain.setValueAtTime(0.28, t + 1.5);
+    g.gain.linearRampToValueAtTime(0, t + 2.1);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 2.1);
+  },
+
+  // Triumphant ascending arpeggio — 5 notes, bright sine
+  win() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [523, 659, 784, 1047, 1319].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const st = t + i * 0.13;
+      g.gain.setValueAtTime(0, st);
+      g.gain.linearRampToValueAtTime(0.32, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, st + 0.65);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(st); osc.stop(st + 0.65);
+    });
+  },
+
+  // Soft whoosh — filtered noise, very short
+  cardDraw() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const samples = Math.floor(audioCtx.sampleRate * 0.09);
+    const buf  = audioCtx.createBuffer(1, samples, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < samples; i++) data[i] = Math.random() * 2 - 1;
+    const ns   = audioCtx.createBufferSource();
+    const filt = audioCtx.createBiquadFilter();
+    const g    = audioCtx.createGain();
+    ns.buffer = buf;
+    filt.type = 'bandpass';
+    filt.frequency.setValueAtTime(4200, t);
+    filt.frequency.linearRampToValueAtTime(700, t + 0.09);
+    filt.Q.value = 1.2;
+    g.gain.setValueAtTime(0.16, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    ns.connect(filt); filt.connect(g); g.connect(masterGain);
+    ns.start(t);
+  },
+
+  // Click/tick — very short square pulse
+  endTurn() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 900;
+    g.gain.setValueAtTime(0.14, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.04);
+  },
+
+  // Subtle high tick — barely audible
+  btnHover() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 1900;
+    g.gain.setValueAtTime(0.035, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.025);
+  },
+};
+
+function toggleMute() {
+  sfxMuted = !sfxMuted;
+  try { localStorage.setItem('neon-grid-sfx-muted', sfxMuted ? '1' : '0'); } catch(e) {}
+  if (masterGain) masterGain.gain.value = sfxMuted ? 0 : 1;
+  const btn = document.getElementById('sfx-btn');
+  if (btn) btn.textContent = sfxMuted ? '🔇' : '🔊';
+}
+/* ── end SFX engine ─────────────────────────────────── */
 
 // ── ANIMATED CANVAS BACKGROUND ───────────────────────
 (function() {
@@ -1454,12 +1787,31 @@ function spawnParticles(x, y, color, count, type) {
 
 // ── CARD DEFINITIONS ─────────────────────────────────
 const CARD_DEFS = {
-  STRIKE:    { id:'STRIKE',    name:'STRIKE',    cost:1, type:'attack',  icon:'⚡', damage:6,  desc:'Deal 6 damage.' },
-  DEFEND:    { id:'DEFEND',    name:'DEFEND',    cost:1, type:'defense', icon:'🛡', block:5,   desc:'Gain 5 block.' },
-  SURGE:     { id:'SURGE',     name:'SURGE',     cost:1, type:'attack',  icon:'💥', aoe:3,     desc:'Deal 3 to all foes.' },
-  HACK:      { id:'HACK',      name:'HACK',      cost:2, type:'attack',  icon:'☠', damage:8,  desc:'Deal 8 damage.' },
-  PATCH:     { id:'PATCH',     name:'PATCH',     cost:1, type:'heal',    icon:'💊', heal:4,    desc:'Restore 4 HP.' },
-  OVERCLOCK: { id:'OVERCLOCK', name:'OVERCLOCK', cost:1, type:'special', icon:'⚙', energy:1,  desc:'Gain +1 energy now.' },
+  // ── Starter cards ──────────────────────────────────────────────────────
+  // STRIKE: baseline attack, always reliable
+  STRIKE:    { id:'STRIKE',    name:'STRIKE',    cost:1, type:'attack',  icon:'⚡', damage:7,   desc:'Deal 7 damage.' },
+  // DEFEND: now worth using — 8 block stops most early attacks cleanly
+  DEFEND:    { id:'DEFEND',    name:'DEFEND',    cost:1, type:'defense', icon:'🛡', block:8,    desc:'Gain 8 block.' },
+  // SURGE: reworked — attack that draws a card so it replaces itself
+  SURGE:     { id:'SURGE',     name:'SURGE',     cost:1, type:'attack',  icon:'💥', damage:4, draw:1, desc:'Deal 4 damage. Draw 1 card.' },
+  // HACK: buffed to 16 dmg — worth the 2-energy premium over 2x STRIKE (14)
+  HACK:      { id:'HACK',      name:'HACK',      cost:2, type:'attack',  icon:'☠', damage:16,  desc:'Deal 16 damage.' },
+  // PATCH: buffed to 8 HP — meaningful recovery
+  PATCH:     { id:'PATCH',     name:'PATCH',     cost:1, type:'heal',    icon:'💊', heal:8,     desc:'Restore 8 HP.' },
+  // OVERCLOCK: now costs 0 and gives net +2 energy — enables burst combos
+  OVERCLOCK: { id:'OVERCLOCK', name:'OVERCLOCK', cost:0, type:'special', icon:'⚙', energy:2,   desc:'FREE. Gain 2 energy now.' },
+
+  // ── Reward-only cards (not in starter deck) ────────────────────────────
+  // FIREWALL: premium defense — stops big hits cold
+  FIREWALL:  { id:'FIREWALL',  name:'FIREWALL',  cost:1, type:'defense', icon:'🔒', block:14,   desc:'Gain 14 block.' },
+  // VIRUS: strips enemy block then damages — great vs shielded enemies
+  VIRUS:     { id:'VIRUS',     name:'VIRUS',     cost:1, type:'attack',  icon:'🦠', damage:5, shred:6, desc:'Deal 5 dmg. Strip 6 enemy block.' },
+  // BLITZ: expensive but devastating — win-condition card
+  BLITZ:     { id:'BLITZ',     name:'BLITZ',     cost:3, type:'attack',  icon:'🌩', damage:28,  desc:'Deal 28 damage.' },
+  // REBOOT: deck cycling — shuffle discard + draw 2, great for long fights
+  REBOOT:    { id:'REBOOT',    name:'REBOOT',    cost:1, type:'special', icon:'🔄', draw:2, shuffle:true, desc:'Draw 2 cards. Shuffle discard.' },
+  // STATIC: free card that deals minor damage — great for spending leftover energy
+  STATIC:    { id:'STATIC',    name:'STATIC',    cost:0, type:'attack',  icon:'📡', damage:3,   desc:'FREE. Deal 3 damage.' },
 };
 
 const CARD_TYPE_COLOR = {
@@ -1467,15 +1819,23 @@ const CARD_TYPE_COLOR = {
 };
 
 const TOOLTIP_DESCS = {
-  STRIKE:    'Deal 6 damage',
-  DEFEND:    'Gain 5 block (absorbs damage)',
-  SURGE:     'Deal 3 damage to all enemies',
-  HACK:      'Deal 8 damage (costs 2 ◆)',
-  PATCH:     'Heal 4 HP',
-  OVERCLOCK: 'Gain +1 energy this turn',
+  STRIKE:    'Deal 7 damage',
+  DEFEND:    'Gain 8 block (absorbs damage this turn)',
+  SURGE:     'Deal 4 damage + draw 1 card',
+  HACK:      'Deal 16 damage (costs 2 ◆)',
+  PATCH:     'Restore 8 HP',
+  OVERCLOCK: 'FREE — gain 2 energy to play more cards',
+  FIREWALL:  'Gain 14 block (costs 1 ◆)',
+  VIRUS:     'Deal 5 damage + strip 6 enemy block',
+  BLITZ:     'Deal 28 damage (costs 3 ◆) — devastating',
+  REBOOT:    'Draw 2 cards + shuffle discard into draw pile',
+  STATIC:    'FREE — deal 3 damage, spend leftover energy',
 };
 
-const REWARD_POOL = Object.keys(CARD_DEFS);
+// Starter deck cards (given at game start)
+const STARTER_CARDS = ['STRIKE','STRIKE','DEFEND','SURGE','PATCH','OVERCLOCK'];
+// Reward pool — all cards can appear as rewards
+const REWARD_POOL   = Object.keys(CARD_DEFS);
 
 // ── ENEMY PORTRAITS ──────────────────────────────────
 const ENEMY_PORTRAITS = {
@@ -1612,7 +1972,7 @@ function newGame() {
       maxEnergy: 3,
     },
     enemy:         null,
-    deck:          ['STRIKE','STRIKE','DEFEND','DEFEND','PATCH'],
+    deck:          [...STARTER_CARDS],
     drawPile:      [],
     hand:          [],
     discardPile:   [],
@@ -1684,6 +2044,7 @@ function showBossIntro(callback) {
   const portrait = ENEMY_PORTRAITS['ICE-9'] || '';
 
   overlay.classList.remove('hidden');
+  SFX.bossIntro();
   textEl.textContent  = '';
   portEl.textContent  = '';
   portEl.style.opacity  = '0';
@@ -1774,6 +2135,19 @@ function playCard(handIdx) {
   G.cardsPlayed++;
   G.playedThisTurn.push(card.name);
 
+  // SFX: card played
+  if (audioCtx) {
+    switch (cardId) {
+      case 'STRIKE': SFX.strike();    break;
+      case 'HACK':   SFX.strike();    break;
+      case 'SURGE':  SFX.surge();     break;
+      case 'DEFEND': SFX.defend();    break;
+      case 'PATCH':  SFX.patch();     break;
+      case 'OVERCLOCK': SFX.overclock(); break;
+      default:       SFX.strike();    break;
+    }
+  }
+
   const e  = G.enemy;
   const p  = G.player;
   const eEl = document.getElementById('enemy-section');
@@ -1785,6 +2159,7 @@ function playCard(handIdx) {
     e.curBlock     = Math.max(0, e.curBlock - card.damage);
     e.hp          -= actual;
     if (actual > 0) {
+      SFX.enemyDamage();
       floatText(`-${actual}`, 'damage', 'enemy');
       floatBattlefield(`⚔ ${actual} DMG`, 'var(--red)');
       // Particles: red sparks at enemy section
@@ -1839,7 +2214,24 @@ function playCard(handIdx) {
     floatBattlefield(`+ ${card.energy} ◆`, 'var(--yellow)');
   }
 
+  // SHRED: strip enemy block (VIRUS)
+  if (card.shred) {
+    const stripped = Math.min(card.shred, e.curBlock);
+    e.curBlock = Math.max(0, e.curBlock - card.shred);
+    if (stripped > 0) floatText(`-${stripped} BLK`, 'damage', 'enemy');
+  }
+
+  // SHUFFLE: reshuffle discard into draw (REBOOT)
+  if (card.shuffle && G.discardPile.length > 0) {
+    G.drawPile = shuffle([...G.drawPile, ...G.discardPile]);
+    G.discardPile = [];
+    floatText('RESHUFFLED', 'buff', 'player');
+  }
+
   G.discardPile.push(cardId);
+
+  // DRAW: draw extra cards (SURGE, REBOOT)
+  if (card.draw) drawCards(card.draw);
 
   if (e.hp <= 0) {
     e.hp = 0;
@@ -1849,6 +2241,7 @@ function playCard(handIdx) {
       const r = eEl.getBoundingClientRect();
       spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, null, 30, 'explosion');
     }
+    SFX.enemyDies();
     inputLocked = true;
     setTimeout(roomCleared, 700);
     return true;
@@ -1924,6 +2317,7 @@ function enemyTurn() {
     p.hp          -= actual;
     p.hp           = Math.max(0, p.hp);
     if (actual > 0) {
+      SFX.playerDamage();
       floatText(`-${actual}`, 'damage', 'player');
       shakeEl(document.getElementById('player-section'));
       // Red particles hit player section
@@ -1977,6 +2371,7 @@ function showTurnBanner(text, color) {
 // ── END TURN ─────────────────────────────────────────
 function endTurn() {
   if (inputLocked || G.screen !== 'combat') return;
+  SFX.endTurn();
   inputLocked = true;
 
   G.discardPile.push(...G.hand);
@@ -1989,6 +2384,7 @@ function endTurn() {
 
 // ── ROOM CLEARED ─────────────────────────────────────
 function roomCleared() {
+  SFX.roomCleared();
   // Green confetti burst
   spawnParticles(window.innerWidth * 0.5, window.innerHeight * 0.4, '#1AFF73', 30, 'confetti');
 
@@ -2067,6 +2463,7 @@ function saveBestRun(data) {
 
 // ── GAME OVER ────────────────────────────────────────
 function gameOver() {
+  SFX.gameOver();
   // Screen glitch + red particles
   const goScreen = document.getElementById('screen-gameover');
   document.body.classList.add('screen-glitch-red');
@@ -2105,6 +2502,7 @@ function gameOver() {
 
 // ── WIN ──────────────────────────────────────────────
 function showWin() {
+  SFX.win();
   // Green particle explosion!
   for (let i = 0; i < 4; i++) {
     setTimeout(() => {
@@ -2291,6 +2689,11 @@ function renderHand(animate) {
     const card    = CARD_DEFS[cardId];
     const canPlay = !inputLocked && p.energy >= card.cost;
 
+    // Card draw whoosh (staggered per card)
+    if (animate) {
+      setTimeout(() => SFX.cardDraw(), idx * 60);
+    }
+
     // Fan-out wrapper
     const wrapper = document.createElement('div');
     wrapper.className = 'card-wrapper';
@@ -2433,9 +2836,8 @@ function addClickAndTouch(el, fn) {
 // ── TITLE DECK PREVIEW ───────────────────────────────
 function renderTitlePreview() {
   const preview  = document.getElementById('title-deck-preview');
-  const starters = ['STRIKE','STRIKE','DEFEND','DEFEND','PATCH'];
   preview.innerHTML = '';
-  starters.forEach(id => {
+  STARTER_CARDS.forEach(id => {
     const c  = CARD_DEFS[id];
     const el = document.createElement('div');
     el.className = 'mini-card';
@@ -2501,6 +2903,19 @@ addClickAndTouch(document.getElementById('btn-play-again'), startGame);
 document.getElementById('help-btn').addEventListener('click', () => {
   showTutorial(null);
 });
+
+// ── SFX MUTE BUTTON ──────────────────────────────────
+const sfxBtn = document.getElementById('sfx-btn');
+sfxBtn.textContent = sfxMuted ? '🔇' : '🔊';
+sfxBtn.addEventListener('click', () => { initAudio(); toggleMute(); });
+
+// ── BUTTON HOVER TICKS (pointer:fine only) ────────────
+if (window.matchMedia('(pointer: fine)').matches) {
+  document.addEventListener('mouseover', (e) => {
+    const btn = e.target.closest('.btn, #help-btn, #sfx-btn');
+    if (btn) SFX.btnHover();
+  });
+}
 
 // ── INIT ─────────────────────────────────────────────
 newGame();
