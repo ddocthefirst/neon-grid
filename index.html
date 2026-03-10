@@ -268,9 +268,37 @@
       border-top: 1px solid rgba(0,230,255,0.12);
       padding: 0.5rem 0.75rem 0.6rem;
     }
+    /* ── Pile row ── */
+    #pile-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+    .pile-box {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(0,230,255,0.04);
+      border: 1px solid rgba(0,230,255,0.15);
+      border-radius: 4px;
+      padding: 0.2rem 0.5rem;
+      min-width: 52px; cursor: default;
+    }
+    .pile-icon  { font-size: 1.1rem; line-height: 1; }
+    .pile-label { font-size: 0.55rem; color: #556677; letter-spacing: 0.15em; margin-top: 1px; }
+    .pile-count { font-size: 0.9rem; color: var(--cyan); font-weight: bold; line-height: 1.2; }
+    #discard-pile-box .pile-count { color: #8899AA; }
+    .pile-spacer {
+      flex: 1; text-align: center;
+    }
+    /* ── Played this turn ── */
+    #played-row {
+      font-size: 0.65rem; letter-spacing: 0.12em;
+      color: #556677; min-height: 1rem;
+      margin-bottom: 0.2rem;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #played-list { color: var(--yellow); }
     #hand-meta {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.3rem;
     }
     .hand-label { font-size: 0.6rem; color: #556677; letter-spacing: 0.18em; }
 
@@ -975,18 +1003,32 @@
 
     <!-- Hand -->
     <div id="hand-area">
-      <div id="hand-meta">
-        <div class="hand-label">YOUR HAND <span id="hand-count" style="color:#8899AA;font-size:0.75em"></span></div>
-        <div style="display:flex;gap:0.8rem;align-items:center;">
-          <div class="hand-label" id="deck-info">DRAW: 0 · DISC: 0</div>
+      <!-- Pile counters row -->
+      <div id="pile-row">
+        <div class="pile-box" id="draw-pile-box">
+          <div class="pile-icon">🂠</div>
+          <div class="pile-label">DRAW</div>
+          <div class="pile-count" id="draw-count">0</div>
+        </div>
+        <div class="pile-spacer">
+          <div id="hand-subtitle">Tap card to play · costs ◆</div>
+        </div>
+        <div class="pile-box" id="discard-pile-box">
+          <div class="pile-icon" id="discard-top-icon">🂠</div>
+          <div class="pile-label">DISCARD</div>
+          <div class="pile-count" id="discard-count">0</div>
         </div>
       </div>
-      <div id="played-row" style="display:none;padding:0.2rem 0 0.3rem;font-size:0.7rem;letter-spacing:0.15em;color:#8899AA;">
-        PLAYED THIS TURN: <span id="played-list" style="color:var(--yellow)"></span>
+      <!-- Played this turn -->
+      <div id="played-row">
+        <span style="color:#556677">PLAYED: </span><span id="played-list"></span>
+      </div>
+      <!-- Hand label -->
+      <div id="hand-meta">
+        <div class="hand-label">HAND <span id="hand-count" style="color:#8899AA"></span></div>
       </div>
       <div id="hand-cards"></div>
-      <div id="swipe-hint">← swipe to scroll →</div>
-      <div id="hand-subtitle">Tap a card to play it instantly · Cards cost ◆ energy</div>
+      <div id="swipe-hint">← swipe →</div>
       <button class="btn" id="end-turn-btn">[ END TURN → ENEMY ATTACKS ]</button>
     </div>
   </div>
@@ -1224,7 +1266,7 @@ function startGame() {
 
 // ── PLAY CARD ────────────────────────────────────────
 function playCard(handIdx) {
-  if (inputLocked || G.screen !== 'combat') return false;
+  if (G.screen !== 'combat') return false;
 
   const cardId = G.hand[handIdx];
   if (!cardId) return false;
@@ -1606,8 +1648,17 @@ function renderCombat(animateHand) {
 
   // Turn
   document.getElementById('turn-info').textContent = `TURN ${G.turn}`;
-  document.getElementById('deck-info').textContent =
-    `DRAW: ${G.drawPile.length} · DISC: ${G.discardPile.length}`;
+  // Pile counters
+  const drawEl = document.getElementById('draw-count');
+  const discEl = document.getElementById('discard-count');
+  const discIconEl = document.getElementById('discard-top-icon');
+  if (drawEl) drawEl.textContent = G.drawPile.length;
+  if (discEl) discEl.textContent = G.discardPile.length;
+  if (discIconEl) {
+    const topCard = G.discardPile.length > 0 ? CARD_DEFS[G.discardPile[G.discardPile.length-1]] : null;
+    discIconEl.textContent = topCard ? topCard.icon : '🂠';
+    discIconEl.style.opacity = topCard ? '1' : '0.3';
+  }
 
   // Enable/disable end turn button
   document.getElementById('end-turn-btn').disabled = inputLocked;
@@ -1686,17 +1737,15 @@ function renderHand(animate) {
   }
 }
 
+let cardAnimating = false;
 function handleCardClick(idx, el) {
-  if (inputLocked || G.screen !== 'combat') return;
-  inputLocked = true;
+  if (inputLocked || cardAnimating || G.screen !== 'combat') return;
+  cardAnimating = true;
   el.classList.add('card-playing');
   setTimeout(() => {
-    const played = playCard(idx);
-    // Unlock unless enemy just died (roomCleared handles that)
-    if (!played || (G.screen === 'combat' && G.enemy.hp > 0)) {
-      inputLocked = false;
-    }
-  }, 200);
+    cardAnimating = false;
+    playCard(idx); // inputLocked only set by endTurn/death, not here
+  }, 180);
 }
 
 // ── FLOATERS ─────────────────────────────────────────
