@@ -1850,7 +1850,11 @@ function showTutorial(onDone) {
   const modal    = document.getElementById('tutorial-modal');
   const startBtn = document.getElementById('btn-tutorial-start');
   modal.classList.remove('hidden');
-  // Clone button to remove previous listeners
+  // Returning players see SKIP, new players see RUN THE GRID
+  startBtn.textContent = hasTutorialBeenSeen()
+    ? '[ SKIP — RUN THE GRID ]'
+    : '[ RUN THE GRID ]';
+  // Clone to wipe old listeners
   const fresh = startBtn.cloneNode(true);
   startBtn.parentNode.replaceChild(fresh, startBtn);
   function dismiss() {
@@ -1881,11 +1885,7 @@ function floatBattlefield(text, color) {
 // ── EVENTS ───────────────────────────────────────────
 addClickAndTouch(document.getElementById('btn-start'), () => {
   newGame();
-  if (hasTutorialBeenSeen()) {
-    startCombat();
-  } else {
-    showTutorial(() => startCombat());
-  }
+  showTutorial(() => startCombat());
 });
 addClickAndTouch(document.getElementById('end-turn-btn'),  endTurn);
 addClickAndTouch(document.getElementById('btn-skip'),      () => nextRoom());
