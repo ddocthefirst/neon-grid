@@ -1,4 +1,4 @@
-<!-- v202603091522 -->
+<!-- v202603091722-GRAPHICS -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,11 +31,11 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ─── GRID BACKGROUND ─── */
+    /* ─── CANVAS BG ─── */
     #canvas-bg {
       position: fixed;
       inset: 0;
-      opacity: 0.07;
+      opacity: 1;
       z-index: 0;
       pointer-events: none;
     }
@@ -212,7 +212,7 @@
     .hp-bar {
       height: 100%;
       border-radius: 2px;
-      transition: width 0.35s ease;
+      transition: width 0.4s ease;
     }
     .hp-bar.enemy-hp { background: linear-gradient(90deg, #c01030, var(--red)); box-shadow: 0 0 6px var(--red); }
     .hp-bar.player-hp { background: linear-gradient(90deg, #0088aa, var(--cyan)); box-shadow: 0 0 6px var(--cyan); }
@@ -236,6 +236,27 @@
     .pill.intent { background: rgba(255,38,64,0.1);  border: 1px solid rgba(255,38,64,0.4);  color: var(--red); }
     .pill.buff   { background: rgba(166,26,255,0.1); border: 1px solid rgba(166,26,255,0.4); color: var(--purple); }
     .pill.wait   { background: rgba(255,217,0,0.1);  border: 1px solid rgba(255,217,0,0.4);  color: var(--yellow); }
+
+    /* NEON DIVIDER */
+    #neon-divider {
+      width: 100%;
+      max-width: 500px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: dividerPulse 2.5s ease-in-out infinite;
+      position: relative;
+    }
+    #neon-divider::before {
+      content: '';
+      position: absolute;
+      inset: -3px 0;
+      background: linear-gradient(90deg, transparent, rgba(0,230,255,0.2), transparent);
+      filter: blur(4px);
+    }
+    @keyframes dividerPulse {
+      0%,100% { opacity: 0.3; }
+      50%      { opacity: 1; }
+    }
 
     /* MIDDLE (energy + turn) */
     #combat-middle {
@@ -314,6 +335,15 @@
     }
     #hand-cards::-webkit-scrollbar { display: none; }
 
+    /* ─── CARD WRAPPER (fan-out) ─── */
+    .card-wrapper {
+      display: flex;
+      align-items: flex-end;
+      transform-origin: bottom center;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
     /* ─── CARDS ─── */
     .card {
       flex-shrink: 0;
@@ -327,6 +357,7 @@
       transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
       position: relative;
       user-select: none;
+      overflow: hidden;
     }
     .card:not(.disabled):hover,
     .card:not(.disabled):active {
@@ -334,19 +365,19 @@
     }
     .card.attack:not(.disabled):hover,
     .card.attack:not(.disabled):active {
-      border-color: var(--red); box-shadow: 0 4px 20px rgba(255,38,64,0.35);
+      border-color: var(--red); box-shadow: 0 4px 20px rgba(255,38,64,0.45);
     }
     .card.defense:not(.disabled):hover,
     .card.defense:not(.disabled):active {
-      border-color: var(--cyan); box-shadow: 0 4px 20px rgba(0,230,255,0.35);
+      border-color: var(--cyan); box-shadow: 0 4px 20px rgba(0,230,255,0.45);
     }
     .card.heal:not(.disabled):hover,
     .card.heal:not(.disabled):active {
-      border-color: var(--green); box-shadow: 0 4px 20px rgba(26,255,115,0.35);
+      border-color: var(--green); box-shadow: 0 4px 20px rgba(26,255,115,0.45);
     }
     .card.special:not(.disabled):hover,
     .card.special:not(.disabled):active {
-      border-color: var(--purple); box-shadow: 0 4px 20px rgba(166,26,255,0.35);
+      border-color: var(--purple); box-shadow: 0 4px 20px rgba(166,26,255,0.45);
     }
     .card.disabled { opacity: 0.38; cursor: not-allowed; filter: grayscale(0.4); }
     .card-cost {
@@ -378,6 +409,59 @@
     .card-desc {
       font-size: 0.45rem; color: #6677AA; text-align: center;
       line-height: 1.35; margin-top: auto;
+    }
+
+    /* ─── CARD SHIMMER ─── */
+    .card-shimmer {
+      position: absolute;
+      top: 0; left: -120%;
+      width: 60%; height: 100%;
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255,255,255,0.05) 40%,
+        rgba(255,255,255,0.12) 50%,
+        rgba(255,255,255,0.05) 60%,
+        transparent 100%
+      );
+      pointer-events: none;
+      transform: skewX(-20deg);
+    }
+    @media (pointer: fine) {
+      .card:not(.disabled):hover .card-shimmer {
+        animation: shimmerSwipe 0.55s ease forwards;
+      }
+    }
+    @keyframes shimmerSwipe {
+      0%   { left: -120%; }
+      100% { left: 220%; }
+    }
+
+    /* ─── CARD GLOWS BY TYPE ─── */
+    .card.attack:not(.disabled) {
+      box-shadow: 0 2px 8px rgba(255,38,64,0.2);
+      animation: attackGlow 2s ease-in-out infinite;
+    }
+    .card.defense:not(.disabled) {
+      box-shadow: 0 2px 10px rgba(0,230,255,0.3), 0 0 15px rgba(0,230,255,0.1);
+    }
+    .card.heal:not(.disabled) {
+      animation: healGlow 2.5s ease-in-out infinite;
+    }
+    .card.special:not(.disabled) {
+      animation: specialGlow 2s ease-in-out infinite;
+    }
+    @keyframes attackGlow {
+      0%,100% { box-shadow: 0 2px 8px rgba(255,38,64,0.2); border-color: var(--card-border); }
+      50%      { box-shadow: 0 2px 18px rgba(255,38,64,0.5), 0 0 28px rgba(255,38,64,0.2); border-color: rgba(255,38,64,0.4); }
+    }
+    @keyframes healGlow {
+      0%,100% { box-shadow: 0 2px 8px rgba(26,255,115,0.15); border-color: var(--card-border); }
+      50%      { box-shadow: 0 2px 14px rgba(26,255,115,0.45), 0 0 22px rgba(26,255,115,0.15); border-color: rgba(26,255,115,0.3); }
+    }
+    @keyframes specialGlow {
+      0%,100% { box-shadow: 0 2px 8px rgba(166,26,255,0.2); border-color: var(--card-border); }
+      50%      { box-shadow: 0 2px 16px rgba(166,26,255,0.5), 0 0 25px rgba(166,26,255,0.2); border-color: rgba(166,26,255,0.35); }
     }
 
     #end-turn-btn { width: 100%; margin-top: 0.5rem; font-size: 0.85rem; letter-spacing: 0.2em; }
@@ -479,7 +563,141 @@
     .end-stats span { color: var(--cyan); }
 
     /* ═══════════════════════════════
-       ANIMATIONS
+       ENEMY PORTRAIT
+    ═══════════════════════════════ */
+    .enemy-portrait {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(0.45rem, 1.4vw, 0.7rem);
+      line-height: 1.2;
+      text-align: center;
+      letter-spacing: 0.05em;
+      white-space: pre;
+      pointer-events: none;
+      filter: drop-shadow(0 0 6px currentColor);
+      transition: color 0.3s;
+    }
+    @keyframes portraitFlicker {
+      0%,100% { opacity: 1; }
+      10%     { opacity: 0.4; }
+      20%     { opacity: 1; }
+      50%     { opacity: 0.7; }
+      60%     { opacity: 1; }
+    }
+    @keyframes portraitRage {
+      0%,100% { transform: scale(1) skewX(0deg); }
+      15%     { transform: scale(1.05) skewX(-2deg); }
+      35%     { transform: scale(1.05) skewX(2deg); }
+      55%     { transform: scale(1.03) skewX(-1deg); }
+      75%     { transform: scale(1.03) skewX(1deg); }
+    }
+    .portrait-flicker { animation: portraitFlicker 0.35s ease; }
+    .portrait-rage    { animation: portraitRage 0.45s ease; }
+
+    /* ═══════════════════════════════
+       HP BAR FLASH
+    ═══════════════════════════════ */
+    @keyframes hpFlash {
+      0%   { filter: brightness(3) saturate(0); }
+      100% { filter: brightness(1) saturate(1); }
+    }
+    .hp-flash { animation: hpFlash 0.35s ease forwards; }
+
+    /* Enemy critical HP (<25%) */
+    @keyframes criticalHpPulse {
+      0%,100% { background: linear-gradient(90deg, #550099, var(--purple)); box-shadow: 0 0 8px var(--purple); }
+      50%      { background: linear-gradient(90deg, #8800CC, #DD00FF); box-shadow: 0 0 20px var(--purple), 0 0 35px rgba(166,26,255,0.3); }
+    }
+    .hp-bar.enemy-hp.critical-hp {
+      animation: criticalHpPulse 0.9s ease-in-out infinite !important;
+    }
+
+    /* Player damage pulse */
+    @keyframes playerDamagePulse {
+      0%   { box-shadow: inset 0 0 40px rgba(255,38,64,0.35); }
+      100% { box-shadow: none; }
+    }
+    .player-damage-pulse {
+      animation: playerDamagePulse 0.5s ease forwards;
+    }
+
+    /* Enemy intent danger */
+    @keyframes intentDanger {
+      0%,100% { opacity: 1; transform: scale(1); text-shadow: 0 0 8px rgba(255,100,50,0.5); }
+      50%      { opacity: 0.7; transform: scale(1.04); text-shadow: 0 0 16px rgba(255,38,64,0.8), 0 0 30px rgba(255,38,64,0.4); }
+    }
+    .intent-danger { animation: intentDanger 0.6s ease-in-out infinite; }
+
+    /* ═══════════════════════════════
+       BOSS INTRO OVERLAY
+    ═══════════════════════════════ */
+    #boss-intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 800;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+    #boss-intro-overlay.hidden { display: none !important; }
+    #boss-intro-text {
+      font-size: clamp(1rem, 4vw, 1.5rem);
+      color: var(--red);
+      letter-spacing: 0.3em;
+      text-align: center;
+      text-shadow: 0 0 20px var(--red), 0 0 50px rgba(255,38,64,0.3);
+      min-height: 2em;
+    }
+    #boss-intro-portrait {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(0.5rem, 1.5vw, 0.85rem);
+      line-height: 1.2;
+      text-align: center;
+      white-space: pre;
+      opacity: 0;
+      transition: opacity 0.3s;
+      filter: drop-shadow(0 0 12px currentColor);
+    }
+    @keyframes bossSlam {
+      0%   { transform: scale(1.5) translateY(-30px); opacity: 0; }
+      40%  { transform: scale(0.95) translateY(4px); opacity: 1; }
+      60%  { transform: scale(1.04) translateY(-2px); }
+      80%  { transform: scale(0.98) translateY(1px); }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .boss-slam { animation: bossSlam 0.5s ease forwards; }
+
+    /* ═══════════════════════════════
+       GAME OVER GLITCH
+    ═══════════════════════════════ */
+    @keyframes screenGlitch {
+      0%,100% { transform: none; filter: none; }
+      5%  { transform: skewX(-3deg); filter: hue-rotate(90deg) brightness(1.5); }
+      10% { transform: none; filter: none; }
+      15% { transform: skewX(2deg) scaleX(1.01); filter: hue-rotate(-90deg); }
+      20% { transform: none; filter: none; }
+      80% { transform: none; filter: none; }
+      85% { transform: scaleX(1.005) translateX(3px); filter: brightness(1.3); }
+      90% { transform: none; filter: none; }
+    }
+    .screen-glitch-red {
+      animation: screenGlitch 0.4s ease;
+      background: rgba(255,0,0,0.08) !important;
+    }
+
+    /* ═══════════════════════════════
+       WIN GLOW
+    ═══════════════════════════════ */
+    @keyframes winGlow {
+      0%,100% { text-shadow: 0 0 30px var(--green), 0 0 60px rgba(26,255,115,0.4); }
+      50%      { text-shadow: 0 0 50px var(--green), 0 0 100px rgba(26,255,115,0.6), 0 0 150px rgba(26,255,115,0.3); }
+    }
+    #screen-win h1 { animation: winGlow 2s ease-in-out infinite; }
+
+    /* ═══════════════════════════════
+       ANIMATIONS (preserved + enhanced)
     ═══════════════════════════════ */
     @keyframes pulse {
       0%,100% { text-shadow: 0 0 20px var(--cyan), 0 0 60px var(--cyan); }
@@ -504,8 +722,8 @@
 
     @keyframes cardPlay {
       0%   { transform: translateY(0) scale(1); opacity: 1; }
-      60%  { transform: translateY(-50px) scale(0.8); opacity: 0.6; }
-      100% { transform: translateY(-100px) scale(0.4); opacity: 0; }
+      60%  { transform: translateY(-50px) scale(0.8); opacity: 0.5; }
+      100% { transform: translateY(-100px) scale(0.3); opacity: 0; }
     }
     .card-playing { animation: cardPlay 0.28s ease forwards !important; pointer-events: none !important; }
 
@@ -533,21 +751,12 @@
       60%  { transform: translateY(-6px) scale(1.02); opacity: 1; }
       100% { transform: translateY(0) scale(1); opacity: 1; }
     }
-    .card.dealing {
-      animation: cardDeal 0.3s ease forwards;
-    }
+    .card.dealing { animation: cardDeal 0.3s ease forwards; }
     .card.dealing:nth-child(2) { animation-delay: 0.05s; }
     .card.dealing:nth-child(3) { animation-delay: 0.10s; }
     .card.dealing:nth-child(4) { animation-delay: 0.15s; }
     .card.dealing:nth-child(5) { animation-delay: 0.20s; }
     .card.dealing:nth-child(6) { animation-delay: 0.25s; }
-
-    /* ─── CARD GLOW BY TYPE ─── */
-    .card.attack  { --glow: rgba(255,38,64,0.2); }
-    .card.defense { --glow: rgba(0,230,255,0.2); }
-    .card.heal    { --glow: rgba(26,255,115,0.2); }
-    .card.special { --glow: rgba(166,26,255,0.2); }
-    .card:not(.disabled) { box-shadow: 0 2px 8px var(--glow, rgba(0,0,0,0)); }
 
     /* ─── COMBO COUNTER ─── */
     #combo-display {
@@ -621,8 +830,8 @@
       animation: bannerAnim 0.9s ease forwards;
     }
     @keyframes bannerAnim {
-      0%   { opacity: 0; transform: scale(0.7); }
-      30%  { opacity: 1; transform: scale(1.05); }
+      0%   { opacity: 0; transform: scale(0.7) translateY(-10px); }
+      30%  { opacity: 1; transform: scale(1.05) translateY(0); }
       70%  { opacity: 1; transform: scale(1); }
       100% { opacity: 0; transform: scale(1.1); }
     }
@@ -633,20 +842,8 @@
     }
 
     /* ─── SCREEN FADE TRANSITION ─── */
-    .screen {
-      transition: opacity 0.25s ease;
-    }
-    .screen.fading-out {
-      opacity: 0 !important;
-      pointer-events: none;
-    }
-
-    /* ─── WIN ANIMATION ─── */
-    @keyframes winGlow {
-      0%,100% { text-shadow: 0 0 30px var(--green), 0 0 60px rgba(26,255,115,0.4); }
-      50%      { text-shadow: 0 0 50px var(--green), 0 0 100px rgba(26,255,115,0.6), 0 0 150px rgba(26,255,115,0.3); }
-    }
-    #screen-win h1 { animation: winGlow 2s ease-in-out infinite; }
+    .screen { transition: opacity 0.25s ease; }
+    .screen.fading-out { opacity: 0 !important; pointer-events: none; }
 
     /* ─── GAME OVER PARTICLE ─── */
     @keyframes particleFall {
@@ -682,7 +879,7 @@
     }
     .pill { animation: pillPop 0.2s ease; }
 
-    /* ─── SCAN LINE OVERLAY (subtle CRT effect) ─── */
+    /* ─── SCAN LINE OVERLAY (CRT effect) ─── */
     body::after {
       content: '';
       position: fixed;
@@ -703,9 +900,7 @@
       0%,100% { box-shadow: none; }
       50%     { box-shadow: inset 0 0 30px rgba(255,38,64,0.15); }
     }
-    #screen-combat.low-hp {
-      animation: lowHpPulse 1s ease-in-out infinite;
-    }
+    #screen-combat.low-hp { animation: lowHpPulse 1s ease-in-out infinite; }
 
     /* ─── RESPONSIVE / MOBILE ─── */
     @media (max-width: 400px) {
@@ -717,6 +912,7 @@
       .reward-card .card-icon { font-size: 1.7rem; }
       .btn { font-size: 0.82rem; letter-spacing: 0.18em; padding: 0.7rem 1.5rem; }
       #screen-title .logo { font-size: clamp(2.2rem, 11vw, 3.5rem); }
+      .enemy-portrait { font-size: 0.42rem; }
     }
 
     @media (max-height: 600px) {
@@ -726,9 +922,9 @@
       #hand-cards { min-height: 100px; }
       .entity-section { gap: 0.25rem; }
       .hp-bar-wrap { height: 16px; }
+      .enemy-portrait { font-size: 0.38rem; }
     }
 
-    /* Very small screens (iPhone SE etc) */
     @media (max-width: 360px) {
       .card { width: 60px; height: 88px; }
       #hand-cards { gap: 0.35rem; }
@@ -890,11 +1086,9 @@
     }
     @media (pointer: coarse) {
       #swipe-hint { display: block; }
-      /* Larger tap targets on touch */
       .card { min-height: 96px; }
       .btn { min-height: 44px; }
       .reward-card { min-height: 126px; }
-      /* Remove hover styles on touch (they stick on mobile) */
       .card:not(.disabled):hover { transform: none; box-shadow: none; border-color: var(--card-border); }
       .card:not(.disabled):active { transform: translateY(-10px) scale(1.03); }
     }
@@ -907,12 +1101,20 @@
       #hand-area { padding: 0.2rem 0.5rem; }
       .card { width: 62px; height: 88px; }
       #hand-cards { min-height: 92px; }
+      .enemy-portrait { display: none; }
+      #neon-divider { display: none; }
     }
   </style>
 </head>
 <body>
 
   <canvas id="canvas-bg"></canvas>
+
+  <!-- ══ BOSS INTRO OVERLAY ══ -->
+  <div id="boss-intro-overlay" class="hidden">
+    <div id="boss-intro-text"></div>
+    <pre id="boss-intro-portrait"></pre>
+  </div>
 
   <!-- ══ TUTORIAL MODAL ══ -->
   <div id="tutorial-modal" class="hidden">
@@ -972,6 +1174,7 @@
     <div id="combat-arena">
       <!-- Enemy -->
       <div class="entity-section" id="enemy-section">
+        <pre id="enemy-portrait" class="enemy-portrait"></pre>
         <div class="entity-name enemy-name" id="enemy-name">SENTINEL</div>
         <div id="enemy-intent-display"></div>
         <div class="hp-bar-wrap">
@@ -980,6 +1183,9 @@
         </div>
         <div class="status-pills" id="enemy-pills"></div>
       </div>
+
+      <!-- Neon divider -->
+      <div id="neon-divider"></div>
 
       <!-- Energy + Turn -->
       <div id="combat-middle">
@@ -1003,7 +1209,6 @@
 
     <!-- Hand -->
     <div id="hand-area">
-      <!-- Pile counters row -->
       <div id="pile-row">
         <div class="pile-box" id="draw-pile-box">
           <div class="pile-icon">🂠</div>
@@ -1019,11 +1224,9 @@
           <div class="pile-count" id="discard-count">0</div>
         </div>
       </div>
-      <!-- Played this turn -->
       <div id="played-row">
         <span style="color:#556677">PLAYED: </span><span id="played-list"></span>
       </div>
-      <!-- Hand label -->
       <div id="hand-meta">
         <div class="hand-label">HAND <span id="hand-count" style="color:#8899AA"></span></div>
       </div>
@@ -1059,34 +1262,195 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   NEON GRID — Complete Game Engine
+   NEON GRID — Full Visual Overhaul + Complete Game Engine
    Pure vanilla JS · No dependencies
 ═══════════════════════════════════════════════════════ */
 
-// ── GRID BACKGROUND ──────────────────────────────────
+// ── ANIMATED CANVAS BACKGROUND ───────────────────────
 (function() {
   const canvas = document.getElementById('canvas-bg');
   const ctx    = canvas.getContext('2d');
+  let w, h;
+
+  // Hex rain
+  const HEX_STRINGS = [
+    '0xFF','0x0A','0x3C','0xD4','0xBE','0x11','0xF0','0x7E',
+    '0x4D','0xAB','0x92','0x1F','0xE3','0x66','0x08','0xCC'
+  ];
+  let cols = [];
+
+  // Scan flare state
+  let scanY        = -50;
+  let scanActive   = false;
+  let nextScanAt   = Date.now() + 3000 + Math.random() * 5000;
+
+  // Perspective grid pan offset
+  let gridOff = 0;
+
+  function initCols() {
+    const colW  = 22;
+    const count = Math.ceil(w / colW) + 2;
+    cols = [];
+    for (let i = 0; i < count; i++) {
+      cols.push({
+        x:     i * colW,
+        y:     Math.random() * h,
+        speed: 0.4 + Math.random() * 1.2,
+        len:   6  + Math.floor(Math.random() * 10),
+        chars: Array.from({length: 16}, () => HEX_STRINGS[Math.floor(Math.random() * HEX_STRINGS.length)]),
+        alpha: 0.25 + Math.random() * 0.4,
+      });
+    }
+  }
+
   function resize() {
-    canvas.width  = innerWidth;
-    canvas.height = innerHeight;
-    draw();
+    w = canvas.width  = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    initCols();
   }
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let lastT = 0;
+  const FPS  = 30;
+  const FINT = 1000 / FPS;
+
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    if (ts - lastT < FINT) return;
+    lastT = ts;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // ── Perspective grid floor ──────────────────────
+    const vx = w * 0.5;
+    const vy = h * 0.38;
+    gridOff  = (gridOff + 0.25) % 50;
+
+    ctx.save();
+    ctx.globalAlpha = 0.055;
     ctx.strokeStyle = '#00E6FF';
-    ctx.lineWidth   = 0.5;
-    const sz = 40;
-    for (let x = 0; x <= canvas.width + sz; x += sz) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    ctx.lineWidth   = 0.6;
+
+    // Converging verticals
+    const vlines = 14;
+    for (let i = 0; i <= vlines; i++) {
+      const bx = w * (i / vlines);
+      ctx.beginPath(); ctx.moveTo(vx, vy); ctx.lineTo(bx, h); ctx.stroke();
     }
-    for (let y = 0; y <= canvas.height + sz; y += sz) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    // Horizontal rows (perspective spacing)
+    const hlines = 10;
+    for (let r = 0; r <= hlines; r++) {
+      const t   = (r / hlines + gridOff / h * 0.5) % 1;
+      const pow = Math.pow(t, 1.6);
+      const y   = vy + (h - vy) * pow;
+      const xL  = vx - vx * t * 1.15;
+      const xR  = vx + (w - vx) * t * 1.15;
+      ctx.beginPath(); ctx.moveTo(xL, y); ctx.lineTo(xR, y); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── Hex rain columns ───────────────────────────
+    ctx.font = '9px Share Tech Mono, monospace';
+    cols.forEach(col => {
+      col.y += col.speed;
+      if (col.y > h + col.len * 13) {
+        col.y = -col.len * 13 * Math.random() * 2;
+        col.chars = col.chars.map(() => HEX_STRINGS[Math.floor(Math.random() * HEX_STRINGS.length)]);
+      }
+      col.chars.forEach((ch, i) => {
+        const cy = col.y - i * 13;
+        if (cy < -10 || cy > h + 10) return;
+        const fade = 1 - i / col.len;
+        ctx.globalAlpha = fade * col.alpha * 0.6;
+        ctx.fillStyle   = i === 0 ? '#AAFFFF' : '#00E6FF';
+        if (i === 0) ctx.globalAlpha = col.alpha * 0.7;
+        ctx.fillText(ch, col.x, cy);
+        // Occasionally mutate char
+        if (Math.random() < 0.015) {
+          col.chars[i] = HEX_STRINGS[Math.floor(Math.random() * HEX_STRINGS.length)];
+        }
+      });
+    });
+    ctx.globalAlpha = 1;
+
+    // ── Horizontal scan flare ───────────────────────
+    if (Date.now() >= nextScanAt && !scanActive) {
+      scanActive = true;
+      scanY      = 0;
+      nextScanAt = Date.now() + 6000 + Math.random() * 9000;
+    }
+    if (scanActive) {
+      const sg = ctx.createLinearGradient(0, scanY - 12, 0, scanY + 12);
+      sg.addColorStop(0,   'rgba(0,230,255,0)');
+      sg.addColorStop(0.5, 'rgba(0,230,255,0.055)');
+      sg.addColorStop(1,   'rgba(0,230,255,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, scanY - 12, w, 24);
+      scanY += 5;
+      if (scanY > h + 20) { scanActive = false; scanY = -50; }
     }
   }
+
   resize();
   window.addEventListener('resize', resize);
+  requestAnimationFrame(frame);
 })();
+
+// ── PARTICLE SYSTEM ──────────────────────────────────
+function spawnParticles(x, y, color, count, type) {
+  const MULTI = ['#FF2640','#FF8800','#FFD900','#00E6FF','#1AFF73','#A61AFF'];
+
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;pointer-events:none;z-index:300;font-family:Share Tech Mono,monospace;';
+
+    const c = color || MULTI[Math.floor(Math.random() * MULTI.length)];
+
+    let ch = '•';
+    switch(type) {
+      case 'spark':     ch = ['★','✦','·','◆','✸'][Math.floor(Math.random()*5)]; break;
+      case 'hex':       ch = '⬡'; break;
+      case 'plus':      ch = '+'; break;
+      case 'confetti':  ch = ['■','◆','▲','●','▪'][Math.floor(Math.random()*5)]; break;
+      case 'explosion': ch = ['★','✦','◉','◆','●','✸','※'][Math.floor(Math.random()*7)]; break;
+      case 'fall':      ch = ['■','◆','▲'][Math.floor(Math.random()*3)]; break;
+    }
+
+    el.textContent  = ch;
+    el.style.color  = c;
+    el.style.fontSize   = (7 + Math.random() * 11) + 'px';
+    el.style.textShadow = `0 0 6px ${c}`;
+
+    const angle = Math.random() * Math.PI * 2;
+    const spd   = 1.2 + Math.random() * (type === 'explosion' ? 5.5 : type === 'confetti' ? 4 : 3);
+    let   vx    = Math.cos(angle) * spd;
+    let   vy    = Math.sin(angle) * spd;
+    if (type === 'plus') vy = -Math.abs(vy) - 1; // float up
+    if (type === 'fall') { vx = (Math.random()-0.5)*2; vy = -2 - Math.random()*2; }
+
+    const life  = type === 'explosion' ? 1400 + Math.random()*600
+                : type === 'confetti'  ? 1000 + Math.random()*500
+                : 500 + Math.random() * 400;
+
+    document.body.appendChild(el);
+
+    let px = x, py = y, start = null;
+
+    (function animate(ts) {
+      if (!start) start = ts;
+      const prog = (ts - start) / life;
+      if (prog >= 1) { el.remove(); return; }
+
+      const drag = 1 - prog * 0.6;
+      px += vx * drag;
+      py += vy * drag + (type === 'fall' ? prog * 3 : prog * 1.5); // gravity
+      el.style.left    = px + 'px';
+      el.style.top     = py + 'px';
+      el.style.opacity = (1 - prog).toFixed(2);
+      el.style.transform = `rotate(${ts * 0.3}deg) scale(${1 - prog * 0.4})`;
+      requestAnimationFrame(animate);
+    })(performance.now() + Math.random() * 60);
+  }
+}
 
 // ── CARD DEFINITIONS ─────────────────────────────────
 const CARD_DEFS = {
@@ -1112,6 +1476,42 @@ const TOOLTIP_DESCS = {
 };
 
 const REWARD_POOL = Object.keys(CARD_DEFS);
+
+// ── ENEMY PORTRAITS ──────────────────────────────────
+const ENEMY_PORTRAITS = {
+  SENTINEL: `  ╔══════╗
+  ║ ◈  ◈ ║
+  ║  ──  ║
+  ╚╦════╦╝
+  ██╩══╩██
+  ▐██████▌`,
+
+  WARDEN: `  ▄▄▄▄▄▄▄
+  █▀▀▀▀▀█
+  █ ▓▓▓ █
+  ████████
+  ▐▌    ▐▌
+  ▐▌    ▐▌`,
+
+  HUNTER: `  ╔═══╗
+──╢ ⊕ ╟──
+  ╚═╤═╝
+  ══╪══
+   ═╪═`,
+
+  PHANTOM: `   .~~~.
+  ( ◈  ◈)
+   \ ω /
+  ~~\/\/~~
+  ~\/\/\/~`,
+
+  'ICE-9': `▓▓▓▓▓▓▓▓▓▓
+▓ ☠     ☠ ▓
+▓  ─────  ▓
+▓ ███████ ▓
+▓▓▓▓▓▓▓▓▓▓
+    ║║║`,
+};
 
 // ── ENEMY DEFINITIONS ────────────────────────────────
 const ENEMY_DEFS = [
@@ -1188,7 +1588,6 @@ function makeEnemy(room) {
     flavor:    d.flavor,
     turn:      0,
     buffed:    false,
-    // Boss-specific: rage at <25% HP
     rageThreshold: d.boss ? Math.floor(d.maxHp * 0.25) : 0,
     raged:     false,
   };
@@ -1196,8 +1595,8 @@ function makeEnemy(room) {
 
 // ── GAME STATE ───────────────────────────────────────
 const PLAYER_MAX_HP = 40;
-let G = {};             // live game state
-let inputLocked = false; // prevent double-input during animations
+let G = {};
+let inputLocked = false;
 
 function newGame() {
   G = {
@@ -1213,13 +1612,15 @@ function newGame() {
       maxEnergy: 3,
     },
     enemy:         null,
-    deck:          ['STRIKE','STRIKE','DEFEND','DEFEND','PATCH'], // starter
+    deck:          ['STRIKE','STRIKE','DEFEND','DEFEND','PATCH'],
     drawPile:      [],
     hand:          [],
     discardPile:   [],
     cardsPlayed:   0,
     playedThisTurn: [],
   };
+  prevEnemyHp  = Infinity;
+  prevPlayerHp = Infinity;
 }
 
 // ── SHUFFLE ──────────────────────────────────────────
@@ -1244,6 +1645,90 @@ function drawCards(n) {
   }
 }
 
+// ── HP BAR FLASH ─────────────────────────────────────
+function flashBar(el) {
+  if (!el) return;
+  el.classList.remove('hp-flash');
+  void el.offsetWidth;
+  el.classList.add('hp-flash');
+  setTimeout(() => el.classList.remove('hp-flash'), 380);
+}
+
+// HP tracking for flash detection
+let prevEnemyHp  = Infinity;
+let prevPlayerHp = Infinity;
+
+// ── GLITCH TEXT EFFECT ───────────────────────────────
+function glitchText(el, finalText, durationMs) {
+  const CHARS = '!@#$%^░▒▓0123456789ABCDEF×±≠';
+  let start = null;
+  (function step(ts) {
+    if (!start) start = ts;
+    const prog = Math.min((ts - start) / durationMs, 1);
+    if (prog >= 1) { el.textContent = finalText; return; }
+    const revealed = Math.floor(prog * finalText.length);
+    let out = finalText.slice(0, revealed);
+    for (let i = revealed; i < finalText.length; i++) {
+      out += CHARS[Math.floor(Math.random() * CHARS.length)];
+    }
+    el.textContent = out;
+    requestAnimationFrame(step);
+  })(performance.now());
+}
+
+// ── BOSS INTRO SEQUENCE ──────────────────────────────
+function showBossIntro(callback) {
+  const overlay  = document.getElementById('boss-intro-overlay');
+  const textEl   = document.getElementById('boss-intro-text');
+  const portEl   = document.getElementById('boss-intro-portrait');
+  const portrait = ENEMY_PORTRAITS['ICE-9'] || '';
+
+  overlay.classList.remove('hidden');
+  textEl.textContent  = '';
+  portEl.textContent  = '';
+  portEl.style.opacity  = '0';
+  portEl.style.color    = 'var(--cyan)';
+  portEl.style.textShadow = '0 0 15px var(--cyan), 0 0 30px rgba(0,230,255,0.4)';
+  portEl.classList.remove('boss-slam');
+
+  // Phase 1: screen dark 500ms
+  setTimeout(() => {
+    // Phase 2: type out warning
+    const msg = '⚠ ICE-9 DETECTED';
+    let i = 0;
+    const typeInterval = setInterval(() => {
+      textEl.textContent = msg.slice(0, ++i);
+      if (i >= msg.length) {
+        clearInterval(typeInterval);
+        // Phase 3: portrait slams in
+        setTimeout(() => {
+          portEl.textContent = portrait;
+          portEl.style.opacity = '1';
+          portEl.classList.add('boss-slam');
+          // Shake the overlay
+          overlay.style.animation = 'shake 0.4s ease';
+          setTimeout(() => { overlay.style.animation = ''; }, 420);
+          // Phase 4: begin combat
+          setTimeout(() => {
+            overlay.classList.add('hidden');
+            callback();
+          }, 900);
+        }, 400);
+      }
+    }, 65);
+  }, 500);
+}
+
+// ── RENDER ENEMY PORTRAIT ────────────────────────────
+function renderEnemyPortrait(e) {
+  const portEl = document.getElementById('enemy-portrait');
+  if (!portEl) return;
+  const portrait = ENEMY_PORTRAITS[e.name] || '';
+  portEl.textContent  = portrait;
+  portEl.style.color  = e.color;
+  portEl.style.textShadow = `0 0 8px ${e.color}, 0 0 20px ${e.color}44`;
+}
+
 // ── START COMBAT ─────────────────────────────────────
 function startCombat() {
   inputLocked      = false;
@@ -1255,8 +1740,19 @@ function startCombat() {
   G.hand           = [];
   G.discardPile    = [];
   drawCards(4);
-  showScreen('combat');
-  renderCombat(true);
+
+  prevEnemyHp  = G.enemy.hp;
+  prevPlayerHp = G.player.hp;
+
+  if (G.room === 5) {
+    showBossIntro(() => {
+      showScreen('combat');
+      renderCombat(true);
+    });
+  } else {
+    showScreen('combat');
+    renderCombat(true);
+  }
 }
 
 function startGame() {
@@ -1273,16 +1769,16 @@ function playCard(handIdx) {
   const card = CARD_DEFS[cardId];
   if (G.player.energy < card.cost) return false;
 
-  // Remove from hand & charge energy
   G.hand.splice(handIdx, 1);
   G.player.energy -= card.cost;
   G.cardsPlayed++;
   G.playedThisTurn.push(card.name);
 
-  const e = G.enemy;
-  const p = G.player;
+  const e  = G.enemy;
+  const p  = G.player;
+  const eEl = document.getElementById('enemy-section');
+  const pEl = document.getElementById('player-section');
 
-  // Apply effect
   if (card.damage) {
     const absorbed = Math.min(card.damage, e.curBlock);
     const actual   = card.damage - absorbed;
@@ -1291,6 +1787,13 @@ function playCard(handIdx) {
     if (actual > 0) {
       floatText(`-${actual}`, 'damage', 'enemy');
       floatBattlefield(`⚔ ${actual} DMG`, 'var(--red)');
+      // Particles: red sparks at enemy section
+      if (eEl) {
+        const r = eEl.getBoundingClientRect();
+        spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, '#FF2640', 14, 'spark');
+      }
+      // Flicker portrait
+      flickerPortrait();
     }
     if (absorbed > 0) floatText('BLOCKED', 'block', 'enemy');
   }
@@ -1302,18 +1805,33 @@ function playCard(handIdx) {
     if (actual > 0) {
       floatText(`-${actual}`, 'damage', 'enemy');
       floatBattlefield(`⚔ ${actual} DMG`, 'var(--red)');
+      if (eEl) {
+        const r = eEl.getBoundingClientRect();
+        spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, '#FF8800', 12, 'spark');
+      }
+      flickerPortrait();
     }
   }
   if (card.block) {
     p.block += card.block;
     floatText(`+${card.block} BLK`, 'block', 'player');
     floatBattlefield(`🛡 ${card.block} BLK`, 'var(--cyan)');
+    // Cyan hex shards around player
+    if (pEl) {
+      const r = pEl.getBoundingClientRect();
+      spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, '#00E6FF', 10, 'hex');
+    }
   }
   if (card.heal) {
     const healed = Math.min(card.heal, p.maxHp - p.hp);
     p.hp += healed;
     floatText(`+${healed} HP`, 'heal', 'player');
     floatBattlefield(`💚 +${healed} HP`, 'var(--green)');
+    // Green plus particles float upward
+    if (pEl) {
+      const r = pEl.getBoundingClientRect();
+      spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, '#1AFF73', 10, 'plus');
+    }
   }
   if (card.energy) {
     p.energy = Math.min(p.maxEnergy + 3, p.energy + card.energy);
@@ -1323,10 +1841,14 @@ function playCard(handIdx) {
 
   G.discardPile.push(cardId);
 
-  // Check enemy death
   if (e.hp <= 0) {
     e.hp = 0;
     renderCombat();
+    // Massive multicolor explosion on enemy death
+    if (eEl) {
+      const r = eEl.getBoundingClientRect();
+      spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, null, 30, 'explosion');
+    }
     inputLocked = true;
     setTimeout(roomCleared, 700);
     return true;
@@ -1336,40 +1858,58 @@ function playCard(handIdx) {
   return true;
 }
 
+// ── PORTRAIT FLICKER ─────────────────────────────────
+function flickerPortrait() {
+  const portEl = document.getElementById('enemy-portrait');
+  if (!portEl) return;
+  portEl.classList.remove('portrait-flicker');
+  void portEl.offsetWidth;
+  portEl.classList.add('portrait-flicker');
+  setTimeout(() => portEl.classList.remove('portrait-flicker'), 380);
+}
+
+function ragePortrait() {
+  const portEl = document.getElementById('enemy-portrait');
+  if (!portEl) return;
+  portEl.classList.remove('portrait-rage');
+  void portEl.offsetWidth;
+  portEl.classList.add('portrait-rage');
+  setTimeout(() => portEl.classList.remove('portrait-rage'), 480);
+}
+
 // ── ENEMY TURN ───────────────────────────────────────
 function enemyTurn() {
-  const e = G.enemy;
-  const p = G.player;
+  const e  = G.enemy;
+  const p  = G.player;
+  const eEl = document.getElementById('enemy-section');
+  const pEl = document.getElementById('player-section');
 
   e.turn++;
 
-  // Boss: buff on turn 3
   if (e.boss && e.turn === 3 && !e.buffed) {
     e.buffed    = true;
     e.atk      += 4;
     e.baseBlock += 3;
     floatText('BUFFED!', 'buff', 'enemy');
     shakeEl(document.getElementById('enemy-section'));
+    ragePortrait();
   }
 
-  // Boss: rage at <25% HP
   if (e.boss && !e.raged && e.hp <= e.rageThreshold && e.hp > 0) {
-    e.raged     = true;
-    e.atk      += 3;
+    e.raged  = true;
+    e.atk   += 3;
     floatText('ENRAGED!', 'buff', 'enemy');
     shakeEl(document.getElementById('enemy-section'));
+    ragePortrait();
   }
 
-  // Block resets each enemy turn
   e.curBlock = e.baseBlock;
 
-  // Phantom: alternates 0/attack (turn 1=atk, 2=wait, 3=atk...)
   let dmg = e.atk;
   if (e.phantom) {
     dmg = (e.turn % 2 === 1) ? e.atk : 0;
   }
 
-  // Animate enemy attacking
   shakeEl(document.getElementById('enemy-section'));
   const eNameEl = document.getElementById('enemy-name');
   eNameEl.classList.remove('enemy-attacking');
@@ -1386,6 +1926,11 @@ function enemyTurn() {
     if (actual > 0) {
       floatText(`-${actual}`, 'damage', 'player');
       shakeEl(document.getElementById('player-section'));
+      // Red particles hit player section
+      if (pEl) {
+        const r = pEl.getBoundingClientRect();
+        spawnParticles(r.left + r.width * 0.5, r.top + r.height * 0.5, '#FF2640', 10, 'spark');
+      }
     }
     if (absorbed > 0) floatText(`${absorbed} BLOCKED`, 'block', 'player');
   } else if (e.phantom) {
@@ -1400,25 +1945,32 @@ function enemyTurn() {
     return;
   }
 
-  // Start new player turn
   setTimeout(() => {
     G.turn++;
-    p.block   = 0;
-    p.energy  = p.maxEnergy;
+    p.block  = 0;
+    p.energy = p.maxEnergy;
     G.playedThisTurn = [];
     drawCards(4);
     inputLocked = false;
     showTurnBanner('YOUR TURN', 'var(--cyan)');
-    renderCombat(true); // animate new hand
+    renderCombat(true);
   }, 500);
 }
 
-// ── TURN BANNER ──────────────────────────────────────
+// ── TURN BANNER (with glitch) ────────────────────────
 function showTurnBanner(text, color) {
-  const el   = document.createElement('div');
-  el.id      = 'turn-banner';
-  el.innerHTML = `<span style="color:${color};text-shadow:0 0 20px ${color}">${text}</span>`;
+  const el = document.createElement('div');
+  el.id    = 'turn-banner';
+  const span = document.createElement('span');
+  span.style.color      = color;
+  span.style.textShadow = `0 0 20px ${color}`;
+  span.textContent      = text;
+  el.appendChild(span);
   document.body.appendChild(el);
+
+  // Glitch then resolve
+  glitchText(span, text, 280);
+
   setTimeout(() => el.remove(), 900);
 }
 
@@ -1427,7 +1979,6 @@ function endTurn() {
   if (inputLocked || G.screen !== 'combat') return;
   inputLocked = true;
 
-  // Discard hand
   G.discardPile.push(...G.hand);
   G.hand = [];
   renderCombat();
@@ -1438,7 +1989,9 @@ function endTurn() {
 
 // ── ROOM CLEARED ─────────────────────────────────────
 function roomCleared() {
-  // Flash effect
+  // Green confetti burst
+  spawnParticles(window.innerWidth * 0.5, window.innerHeight * 0.4, '#1AFF73', 30, 'confetti');
+
   const flash = document.createElement('div');
   flash.className = 'room-clear-flash';
   flash.innerHTML = '<span>ROOM CLEARED</span>';
@@ -1456,11 +2009,9 @@ function roomCleared() {
 
 // ── REWARD SCREEN ────────────────────────────────────
 function showReward() {
-  // Show room clear stats
   document.getElementById('reward-stats').innerHTML =
     `<span>ROOM ${G.room}/5</span> cleared &nbsp;·&nbsp; HP: <span>${G.player.hp}/${G.player.maxHp}</span>`;
 
-  // 3 unique random cards
   const pool    = shuffle(REWARD_POOL);
   const choices = pool.slice(0, 3);
 
@@ -1489,10 +2040,8 @@ function showReward() {
 }
 
 function selectRewardWithAnim(cardId, el) {
-  // Flash border green on the selected card
   el.style.borderColor = 'var(--green)';
   el.style.boxShadow   = '0 0 25px rgba(26,255,115,0.5)';
-  // Disable all reward cards
   document.querySelectorAll('.reward-card').forEach(c => { c.style.pointerEvents = 'none'; });
   setTimeout(() => selectReward(cardId), 350);
 }
@@ -1503,7 +2052,7 @@ function selectReward(cardId) {
 }
 
 function nextRoom() {
-  G.cardsPlayed = 0; // reset per-room counter
+  G.cardsPlayed = 0;
   G.room++;
   startCombat();
 }
@@ -1516,26 +2065,26 @@ function saveBestRun(data) {
   try { localStorage.setItem('neon-grid-best', JSON.stringify(data)); } catch(e) {}
 }
 
-// ── PARTICLES (game over effect) ─────────────────────
-function spawnParticles() {
-  const colors = ['var(--red)', 'var(--purple)', '#FF8800'];
-  for (let i = 0; i < 18; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    p.style.left  = Math.random() * 100 + 'vw';
-    p.style.top   = Math.random() * 40 + 'vh';
-    p.style.background = colors[i % colors.length];
-    p.style.animation  = `particleFall ${0.8 + Math.random() * 0.8}s ease ${Math.random() * 0.3}s forwards`;
-    document.body.appendChild(p);
-    setTimeout(() => p.remove(), 1800);
-  }
-}
-
 // ── GAME OVER ────────────────────────────────────────
 function gameOver() {
-  spawnParticles();
+  // Screen glitch + red particles
+  const goScreen = document.getElementById('screen-gameover');
+  document.body.classList.add('screen-glitch-red');
+  setTimeout(() => document.body.classList.remove('screen-glitch-red'), 420);
 
-  const best = loadBestRun();
+  // Falling red particles
+  for (let i = 0; i < 22; i++) {
+    setTimeout(() => {
+      spawnParticles(
+        Math.random() * window.innerWidth,
+        Math.random() * window.innerHeight * 0.5,
+        i % 3 === 0 ? '#A61AFF' : i % 3 === 1 ? '#FF8800' : '#FF2640',
+        1, 'fall'
+      );
+    }, i * 60);
+  }
+
+  const best   = loadBestRun();
   const isBest = !best || G.room > best.room || (G.room === best.room && G.cardsPlayed > best.cardsPlayed);
   if (isBest) saveBestRun({ room: G.room, cardsPlayed: G.cardsPlayed, won: false });
 
@@ -1543,14 +2092,31 @@ function gameOver() {
     `Cards played: <span>${G.cardsPlayed}</span><br/>` +
     `Final HP: <span>0/${G.player.maxHp}</span>`;
   if (isBest && best) html += `<br/><span style="color:var(--yellow)">↑ NEW RECORD</span>`;
-  else if (best) html += `<br/>Best run: rooms <span>${best.room}</span>`;
+  else if (best)      html += `<br/>Best run: rooms <span>${best.room}</span>`;
   document.getElementById('gameover-stats').innerHTML = html;
   showScreen('gameover');
+
+  // Scramble the FLATLINED text then resolve
+  setTimeout(() => {
+    const h1 = document.querySelector('#screen-gameover h1');
+    if (h1) glitchText(h1, 'FLATLINED', 600);
+  }, 100);
 }
 
 // ── WIN ──────────────────────────────────────────────
 function showWin() {
-  const best = loadBestRun();
+  // Green particle explosion!
+  for (let i = 0; i < 4; i++) {
+    setTimeout(() => {
+      spawnParticles(
+        window.innerWidth  * (0.2 + Math.random() * 0.6),
+        window.innerHeight * (0.2 + Math.random() * 0.5),
+        '#1AFF73', 20, 'explosion'
+      );
+    }, i * 150);
+  }
+
+  const best   = loadBestRun();
   const isBest = !best || !best.won;
   saveBestRun({ room: 5, cardsPlayed: G.cardsPlayed, hp: G.player.hp, won: true });
 
@@ -1571,19 +2137,16 @@ function showScreen(name) {
   ALL_SCREENS.forEach(s => {
     document.getElementById(`screen-${s}`).classList.toggle('hidden', s !== name);
   });
-  // Low HP warning on combat screen
   const combatEl = document.getElementById('screen-combat');
   combatEl.classList.toggle('low-hp', name === 'combat' && G.player && G.player.hp <= G.player.maxHp * 0.25);
 }
 
 // ── ENEMY INTENT ─────────────────────────────────────
 function getEnemyIntentDmg(e) {
-  // What will the enemy do on their NEXT turn?
   const nextTurn = e.turn + 1;
   if (e.phantom) return (nextTurn % 2 === 1) ? e.atk : 0;
-  if (e.boss && nextTurn === 3 && !e.buffed) return e.atk + 4; // will buff+attack
-  // Show rage warning if boss is about to rage
-  if (e.boss && !e.raged && e.hp <= e.rageThreshold + 3) return e.atk + 3; // hint
+  if (e.boss && nextTurn === 3 && !e.buffed) return e.atk + 4;
+  if (e.boss && !e.raged && e.hp <= e.rageThreshold + 3) return e.atk + 3;
   return e.atk;
 }
 
@@ -1592,35 +2155,61 @@ function renderCombat(animateHand) {
   const e = G.enemy;
   const p = G.player;
 
-  // HUD
   document.getElementById('room-num').textContent = G.room;
   renderRoomDots();
 
-  // Enemy
+  // Enemy name
   const nameEl = document.getElementById('enemy-name');
   nameEl.textContent = `${e.icon} ${e.boss ? '⚠ ' : ''}${e.name}`;
   nameEl.style.color = e.color;
   nameEl.style.textShadow = `0 0 10px ${e.color}`;
-  const ePct = Math.max(0, e.hp / e.maxHp * 100);
-  document.getElementById('enemy-hp-bar').style.width = ePct + '%';
+
+  // Enemy HP bar + flash detection
+  const ePct    = Math.max(0, e.hp / e.maxHp * 100);
+  const enemyBar = document.getElementById('enemy-hp-bar');
+  enemyBar.style.width = ePct + '%';
   document.getElementById('enemy-hp-text').textContent = `${Math.max(0,e.hp)}/${e.maxHp}`;
-  // Boss: color the HP bar differently
+
+  if (e.hp < prevEnemyHp) {
+    flashBar(enemyBar);
+    shakeEl(document.getElementById('enemy-section'));
+  }
+  prevEnemyHp = e.hp;
+
+  // Boss HP bar color
   if (e.boss) {
-    document.getElementById('enemy-hp-bar').style.background =
-      e.raged ? 'var(--purple)' : e.buffed ? '#FF8800' : 'var(--red)';
+    enemyBar.style.background = e.raged
+      ? 'linear-gradient(90deg,#550099,var(--purple))'
+      : e.buffed ? 'linear-gradient(90deg,#882200,#FF8800)'
+      : null;
+    if (!e.raged && !e.buffed) enemyBar.style.background = '';
   }
 
-  // Enemy intent indicator (above HP bar)
+  // Critical HP (<25%): purple pulse
+  if (ePct < 25 && e.hp > 0) {
+    enemyBar.classList.add('critical-hp');
+  } else {
+    enemyBar.classList.remove('critical-hp');
+  }
+
+  // Enemy intent
   const intentDmg = getEnemyIntentDmg(e);
   const intentEl  = document.getElementById('enemy-intent-display');
   if (intentDmg === 0) {
     intentEl.textContent = '◌ RECHARGING';
     intentEl.style.color = 'var(--yellow)';
     intentEl.style.textShadow = '0 0 8px rgba(255,217,0,0.4)';
+    intentEl.classList.remove('intent-danger');
   } else {
     intentEl.textContent = `⚡ ${intentDmg} DMG incoming`;
     intentEl.style.color = '#FF6633';
     intentEl.style.textShadow = '0 0 8px rgba(255,100,50,0.5)';
+    // Danger animation when >6 dmg
+    if (intentDmg > 6) {
+      intentEl.classList.add('intent-danger');
+    } else {
+      intentEl.classList.remove('intent-danger');
+    }
   }
 
   const ePills = document.getElementById('enemy-pills');
@@ -1629,15 +2218,27 @@ function renderCombat(animateHand) {
   if (e.buffed)       ePills.innerHTML += `<span class="pill buff">⬆ BUFFED</span>`;
   if (e.raged)        ePills.innerHTML += `<span class="pill buff" style="color:var(--purple)">💢 ENRAGED</span>`;
 
-  // Player
-  const pPct = Math.max(0, p.hp / p.maxHp * 100);
-  document.getElementById('player-hp-bar').style.width = pPct + '%';
+  // Player HP bar + flash
+  const pPct    = Math.max(0, p.hp / p.maxHp * 100);
+  const playerBar = document.getElementById('player-hp-bar');
+  playerBar.style.width = pPct + '%';
   document.getElementById('player-hp-text').textContent = `${p.hp}/${p.maxHp}`;
+
+  if (p.hp < prevPlayerHp) {
+    flashBar(playerBar);
+    const pSection = document.getElementById('player-section');
+    pSection.classList.remove('player-damage-pulse');
+    void pSection.offsetWidth;
+    pSection.classList.add('player-damage-pulse');
+    setTimeout(() => pSection.classList.remove('player-damage-pulse'), 520);
+  }
+  prevPlayerHp = p.hp;
+
   const pPills = document.getElementById('player-pills');
   pPills.innerHTML = p.block > 0 ? `<span class="pill block">🛡 ${p.block}</span>` : '';
 
   // Energy
-  const pipsEl = document.getElementById('energy-pips');
+  const pipsEl   = document.getElementById('energy-pips');
   pipsEl.innerHTML = '';
   const totalPips = Math.max(p.maxEnergy, p.energy);
   for (let i = 0; i < totalPips; i++) {
@@ -1646,11 +2247,10 @@ function renderCombat(animateHand) {
     pipsEl.appendChild(pip);
   }
 
-  // Turn
   document.getElementById('turn-info').textContent = `TURN ${G.turn}`;
-  // Pile counters
-  const drawEl = document.getElementById('draw-count');
-  const discEl = document.getElementById('discard-count');
+
+  const drawEl     = document.getElementById('draw-count');
+  const discEl     = document.getElementById('discard-count');
   const discIconEl = document.getElementById('discard-top-icon');
   if (drawEl) drawEl.textContent = G.drawPile.length;
   if (discEl) discEl.textContent = G.discardPile.length;
@@ -1660,13 +2260,11 @@ function renderCombat(animateHand) {
     discIconEl.style.opacity = topCard ? '1' : '0.3';
   }
 
-  // Enable/disable end turn button
   document.getElementById('end-turn-btn').disabled = inputLocked;
+  document.getElementById('screen-combat').classList.toggle('low-hp', p.hp <= p.maxHp * 0.25);
 
-  // Low HP warning
-  document.getElementById('screen-combat').classList.toggle(
-    'low-hp', G.player.hp <= G.player.maxHp * 0.25
-  );
+  // Render enemy portrait
+  renderEnemyPortrait(e);
 
   renderHand(animateHand);
 }
@@ -1676,8 +2274,7 @@ function renderRoomDots() {
   container.innerHTML = '';
   for (let i = 1; i <= G.totalRooms; i++) {
     const dot = document.createElement('div');
-    dot.className = 'room-dot' +
-      (i < G.room ? ' done' : i === G.room ? ' active' : '');
+    dot.className = 'room-dot' + (i < G.room ? ' done' : i === G.room ? ' active' : '');
     container.appendChild(dot);
   }
 }
@@ -1687,13 +2284,25 @@ function renderHand(animate) {
   container.innerHTML = '';
   const p = G.player;
 
+  const totalCards = G.hand.length;
+  const midIdx     = (totalCards - 1) / 2;
+
   G.hand.forEach((cardId, idx) => {
-    const card      = CARD_DEFS[cardId];
-    const canPlay   = !inputLocked && p.energy >= card.cost;
-    const el        = document.createElement('div');
-    el.className    = `card ${card.type}${canPlay ? '' : ' disabled'}${animate ? ' dealing' : ''}`;
-    const tipText   = TOOLTIP_DESCS[cardId] || card.desc;
-    el.innerHTML    = `
+    const card    = CARD_DEFS[cardId];
+    const canPlay = !inputLocked && p.energy >= card.cost;
+
+    // Fan-out wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card-wrapper';
+    const angle = totalCards > 1 ? (idx - midIdx) / Math.max(1, totalCards - 1) * 10 : 0;
+    wrapper.style.transform       = `rotate(${angle}deg)`;
+    wrapper.style.transformOrigin = 'bottom center';
+
+    const el = document.createElement('div');
+    el.className = `card ${card.type}${canPlay ? '' : ' disabled'}${animate ? ' dealing' : ''}`;
+    const tipText = TOOLTIP_DESCS[cardId] || card.desc;
+    el.innerHTML = `
+      <div class="card-shimmer"></div>
       <div class="card-tooltip">${tipText}</div>
       <div class="card-cost">${card.cost}</div>
       <div class="card-type-bar" style="background:${CARD_TYPE_COLOR[card.type]}"></div>
@@ -1716,15 +2325,14 @@ function renderHand(animate) {
     if (canPlay) {
       addClickAndTouch(el, () => handleCardClick(idx, el));
     }
-    container.appendChild(el);
+
+    wrapper.appendChild(el);
+    container.appendChild(wrapper);
   });
 
-  // Combo display
-  // Hand count
   const handCount = document.getElementById('hand-count');
   if (handCount) handCount.textContent = `(${G.hand.length})`;
 
-  // Played this turn row
   const playedRow  = document.getElementById('played-row');
   const playedList = document.getElementById('played-list');
   if (playedRow && playedList) {
@@ -1744,7 +2352,7 @@ function handleCardClick(idx, el) {
   el.classList.add('card-playing');
   setTimeout(() => {
     cardAnimating = false;
-    playCard(idx); // inputLocked only set by endTurn/death, not here
+    playCard(idx);
   }, 180);
 }
 
@@ -1776,10 +2384,10 @@ function shakeEl(el) {
 
 // ── TOUCH + CLICK HELPER ─────────────────────────────
 function addClickAndTouch(el, fn) {
-  let touchFired   = false;
-  let touchStartX  = 0;
-  let touchStartY  = 0;
-  let touchMoved   = false;
+  let touchFired  = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchMoved  = false;
 
   el.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
@@ -1794,7 +2402,7 @@ function addClickAndTouch(el, fn) {
   }, { passive: true });
 
   el.addEventListener('touchend', (e) => {
-    if (touchMoved) return; // was a scroll, not a tap
+    if (touchMoved) return;
     e.preventDefault();
     touchFired = true;
     fn();
@@ -1806,9 +2414,9 @@ function addClickAndTouch(el, fn) {
   });
 }
 
-// ── HAND HORIZONTAL SCROLL (touch momentum) ──────────
+// ── HAND HORIZONTAL SCROLL ───────────────────────────
 (function setupHandScroll() {
-  let startX = 0, scrollLeft = 0, dragging = false;
+  let startX = 0, scrollLeft = 0;
   const hand = document.getElementById('hand-cards');
 
   hand.addEventListener('touchstart', (e) => {
@@ -1850,11 +2458,9 @@ function showTutorial(onDone) {
   const modal    = document.getElementById('tutorial-modal');
   const startBtn = document.getElementById('btn-tutorial-start');
   modal.classList.remove('hidden');
-  // Returning players see SKIP, new players see RUN THE GRID
   startBtn.textContent = hasTutorialBeenSeen()
     ? '[ SKIP — RUN THE GRID ]'
     : '[ RUN THE GRID ]';
-  // Clone to wipe old listeners
   const fresh = startBtn.cloneNode(true);
   startBtn.parentNode.replaceChild(fresh, startBtn);
   function dismiss() {
@@ -1887,12 +2493,11 @@ addClickAndTouch(document.getElementById('btn-start'), () => {
   newGame();
   showTutorial(() => startCombat());
 });
-addClickAndTouch(document.getElementById('end-turn-btn'),  endTurn);
-addClickAndTouch(document.getElementById('btn-skip'),      () => nextRoom());
-addClickAndTouch(document.getElementById('btn-restart'),   startGame);
+addClickAndTouch(document.getElementById('end-turn-btn'),   endTurn);
+addClickAndTouch(document.getElementById('btn-skip'),       () => nextRoom());
+addClickAndTouch(document.getElementById('btn-restart'),    startGame);
 addClickAndTouch(document.getElementById('btn-play-again'), startGame);
 
-// Help button — re-show tutorial overlay without starting a new game
 document.getElementById('help-btn').addEventListener('click', () => {
   showTutorial(null);
 });
